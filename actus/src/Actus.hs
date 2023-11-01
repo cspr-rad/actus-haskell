@@ -46,7 +46,7 @@ annuityAnalysis annuity repaymentAmount startDay periods = do
   putStrLn "Analysing annuity with"
   putStrLn $ unwords ["Start day:", show startDay]
   putStrLn $ unwords ["Principal amount:", formatUSD $ annuityPrincipal annuity]
-  putStrLn $ unwords ["Interest rate per year:", printf "%.2f %%" $ (realToFrac :: Ratio Natural -> Double) $ annuityInterestRate annuity]
+  putStrLn $ unwords ["Interest rate per year:", printf "%.2f %%" $ (realToFrac :: Ratio Natural -> Double) $ annuityInterestRate annuity * 100]
   putStrLn ""
   putStrLn $ unwords ["Analysing based on variable maturity and given amount of", formatUSD repaymentAmount]
   case calculateFloatingMaturity annuity repaymentAmount startDay of
@@ -115,7 +115,9 @@ calculateFloatingMaturity Annuity {..} repaymentAmount beginDay = go beginDay an
         else
           let currentDay = calculateNextDay lastDay
               daysBetween = fromIntegral $ diffDays currentDay lastDay
-              periodInterestRate = annuityInterestRate * (daysBetween % 365)
+              (y, _, _) = toGregorian lastDay
+              yearLength = if isLeapYear y then 366 else 365
+              periodInterestRate = annuityInterestRate * (daysBetween % yearLength)
               -- Interest amount = current principal amount * interest rate
               (interestAmount, _) = Amount.fraction currentPrincipal periodInterestRate
            in -- (if actualRate /= annuityInterestRate then traceShow ("Rates differ slightly", actualRate, annuityInterestRate, realToFrac actualRate - realToFrac annuityInterestRate :: Double) else id) $
