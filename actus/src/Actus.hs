@@ -167,16 +167,17 @@ calculateNextMonth d =
 calculateFloatingAmount :: Annuity -> Word -> Day -> Maybe [(Day, (Ratio Natural, Money.Amount, Money.Amount, Money.Amount))]
 calculateFloatingAmount annuity@Annuity {..} periods startDay =
   let ir_i :: [Ratio Natural]
-      ir_i = reverse $ goPeriods periods startDay
+      ir_i = goPeriods 0 startDay
         where
           goPeriods :: Word -> Day -> [Ratio Natural]
-          goPeriods 0 _ = []
-          goPeriods i lastDay =
-            let (y, _, _) = toGregorian lastDay
-                yearLength = if isLeapYear y then 366 else 365
-                currentDay = calculateNextMonth lastDay
-             in (annuityInterestRate * (fromIntegral (diffDays currentDay lastDay) % yearLength))
-                  : goPeriods (pred i) currentDay
+          goPeriods i lastDay
+            | i >= periods = []
+            | otherwise =
+                let (y, _, _) = toGregorian lastDay
+                    yearLength = if isLeapYear y then 366 else 365
+                    currentDay = calculateNextMonth lastDay
+                 in goPeriods (succ i) currentDay
+                      ++ [annuityInterestRate * (fromIntegral (diffDays currentDay lastDay) % yearLength)]
 
       i_i :: Word -> Ratio Natural
       i_i i = product $ map (\ir -> 1 + ir) (take (fromIntegral i) ir_i)
