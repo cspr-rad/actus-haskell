@@ -16,6 +16,7 @@ ghc-options:
 library:
   source-dirs: src
   dependencies:
+    - binary-search
     - pretty-show
     - really-safe-money
     - time
