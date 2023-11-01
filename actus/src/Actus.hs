@@ -8,7 +8,6 @@ import Control.Monad
 import Data.Ratio
 import Data.Time
 import Data.Word
-import Debug.Trace
 import GHC.Generics (Generic)
 import qualified Money.Amount as Amount
 import qualified Money.Amount as Money
@@ -17,7 +16,6 @@ import System.Environment
 import System.Exit
 import Text.Printf
 import Text.Read
-import Text.Show.Pretty (pPrint)
 
 actusMain :: IO ()
 actusMain = do
@@ -45,8 +43,8 @@ actusMain = do
 
 annuityAnalysis :: Annuity -> Money.Amount -> Day -> Word -> IO ()
 annuityAnalysis annuity repaymentAmount startDay periods = do
-  pPrint annuity
   putStrLn "Analysing annuity with"
+  putStrLn $ unwords ["Start day:", show startDay]
   putStrLn $ unwords ["Principal amount:", formatUSD $ annuityPrincipal annuity]
   putStrLn $ unwords ["Interest rate per year:", printf "%.2f %%" $ (realToFrac :: Ratio Natural -> Double) $ annuityInterestRate annuity]
   putStrLn ""
@@ -65,7 +63,7 @@ printPayments payments = do
     putStrLn $
       unwords
         [ "Payment on: " <> show day,
-          "Rate during this period",
+          " Rate during this period",
           printf "%.4f" ((realToFrac :: Ratio Natural -> Double) rateDuringThisPeriod),
           " Interest paid:",
           formatUSD interest,
@@ -85,7 +83,7 @@ minimalQuantisations :: Word32
 minimalQuantisations = 100
 
 formatAmount :: Word32 -> String -> Money.Amount -> String
-formatAmount minimalQuantisations symbol a = printf ("%10.2f " <> symbol) (Amount.toDouble minimalQuantisations a)
+formatAmount qs symbol a = printf ("%10.2f " <> symbol) (Amount.toDouble qs a)
 
 -- | Annuity
 --
@@ -106,13 +104,6 @@ data Annuity = Annuity
   }
   deriving (Show, Eq, Generic)
 
-exampleAnnuity :: Annuity
-exampleAnnuity =
-  Annuity
-    { annuityPrincipal = Amount.fromMinimalQuantisations $ 100_000, -- 100K
-      annuityInterestRate = (4 % 100) / 12
-    }
-
 -- [(Date of payment, interest paid, principal paid)]
 calculateFloatingMaturity :: Annuity -> Money.Amount -> Day -> Maybe [(Day, (Ratio Natural, Money.Amount, Money.Amount, Money.Amount))]
 calculateFloatingMaturity Annuity {..} repaymentAmount beginDay = go beginDay annuityPrincipal
@@ -126,7 +117,7 @@ calculateFloatingMaturity Annuity {..} repaymentAmount beginDay = go beginDay an
               daysBetween = fromIntegral $ diffDays currentDay lastDay
               periodInterestRate = daysBetween % 365
               -- Interest amount = current principal amount * interest rate
-              (interestAmount, actualRate) = Amount.fraction currentPrincipal periodInterestRate
+              (interestAmount, _) = Amount.fraction currentPrincipal periodInterestRate
            in -- (if actualRate /= annuityInterestRate then traceShow ("Rates differ slightly", actualRate, annuityInterestRate, realToFrac actualRate - realToFrac annuityInterestRate :: Double) else id) $
               -- If the interest amonut is more than how much we pay per month, then the loan can never be repayed
               if interestAmount >= repaymentAmount
@@ -186,7 +177,7 @@ calculateFloatingAmount annuity periods startDay =
           )
    in result
 
-binarySearchAmount :: Show r => Money.Amount -> Money.Amount -> (Money.Amount -> r) -> (r -> Ordering) -> (Money.Amount, r)
+binarySearchAmount :: Money.Amount -> Money.Amount -> (Money.Amount -> r) -> (r -> Ordering) -> (Money.Amount, r)
 binarySearchAmount loAmount hiAmount compute order = go loAmount hiAmount
   where
     go lo hi =
