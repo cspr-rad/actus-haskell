@@ -33,7 +33,9 @@
     }:
     let
       system = "x86_64-linux";
-      nixpkgsFor = nixpkgs: import nixpkgs { inherit system; };
+      nixpkgsFor = nixpkgs: import nixpkgs {
+        inherit system; config.allowUnfree = true;
+      };
       pkgs = nixpkgsFor nixpkgs;
       allOverrides = pkgs.lib.composeManyExtensions [
         (pkgs.callPackage (validity + "/nix/overrides.nix") { })

@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE NumericUnderscores #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Actus (actusMain) where
@@ -171,7 +171,7 @@ calculateFloatingAmount annuity periods startDay =
           loAmount
           hiAmount
           (\a -> calculateFloatingMaturity annuity a startDay)
-          ( \mps -> case mps of
+          ( \case
               Nothing -> LT -- Amount is too low
               Just ps -> compare periods (fromIntegral (length ps))
           )
