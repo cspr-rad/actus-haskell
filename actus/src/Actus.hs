@@ -51,16 +51,31 @@ annuityAnalysis annuity repaymentAmount startDay periods = do
   putStrLn $ unwords ["Interest rate per year:", printf "%.2f %%" $ (realToFrac :: Ratio Natural -> Double) $ annuityInterestRate annuity]
   putStrLn ""
   putStrLn $ unwords ["Analysing based on variable maturity and given amount of", formatUSD repaymentAmount]
-  printPayments $ calculateFloatingMaturity annuity repaymentAmount startDay
+  case calculateFloatingMaturity annuity repaymentAmount startDay of
+    Nothing -> die "Cannot be repaid with the given repayment amount"
+    Just payments -> printPayments payments
   putStrLn ""
   putStrLn $ unwords ["Analysing based on variable amount and given maturity of", show periods, "periods."]
-  printPayments $ calculateFloatingAmount annuity periods startDay
+  mapM_ printPayments $ calculateFloatingAmount annuity periods startDay
 
-printPayments :: [(Day, (Money.Amount, Money.Amount, Money.Amount))] -> IO ()
+printPayments :: [(Day, (Ratio Natural, Money.Amount, Money.Amount, Money.Amount))] -> IO ()
 printPayments payments = do
-  forM_ payments $ \(day, (interest, principal, principalLeftover)) -> do
+  forM_ payments $ \(day, (rateDuringThisPeriod, interest, principal, principalLeftover)) -> do
     let totalRepaid = partialAdd interest principal
-    putStrLn $ unwords ["Payment on: " <> show day, " Interest paid:", formatUSD interest, " Principal repaid:", formatUSD principal, " Total paid:", formatUSD totalRepaid, " Principal leftover:", formatUSD principalLeftover]
+    putStrLn $
+      unwords
+        [ "Payment on: " <> show day,
+          "Rate during this period",
+          printf "%.4f" ((realToFrac :: Ratio Natural -> Double) rateDuringThisPeriod),
+          " Interest paid:",
+          formatUSD interest,
+          " Principal repaid:",
+          formatUSD principal,
+          " Total paid:",
+          formatUSD totalRepaid,
+          " Principal leftover:",
+          formatUSD principalLeftover
+        ]
   putStrLn $ unwords ["Total number of payments:", show (length payments)]
 
 formatUSD :: Money.Amount -> String
@@ -99,12 +114,13 @@ exampleAnnuity =
     }
 
 -- [(Date of payment, interest paid, principal paid)]
-calculateFloatingMaturity :: Annuity -> Money.Amount -> Day -> [(Day, (Money.Amount, Money.Amount, Money.Amount))]
+calculateFloatingMaturity :: Annuity -> Money.Amount -> Day -> Maybe [(Day, (Ratio Natural, Money.Amount, Money.Amount, Money.Amount))]
 calculateFloatingMaturity Annuity {..} repaymentAmount beginDay = go beginDay annuityPrincipal
   where
+    go :: Day -> Money.Amount -> Maybe [(Day, (Ratio Natural, Money.Amount, Money.Amount, Money.Amount))]
     go lastDay currentPrincipal =
       if currentPrincipal == Amount.zero
-        then []
+        then Just []
         else
           let currentDay = calculateNextDay lastDay
               daysBetween = fromIntegral $ diffDays currentDay lastDay
@@ -114,14 +130,14 @@ calculateFloatingMaturity Annuity {..} repaymentAmount beginDay = go beginDay an
            in -- (if actualRate /= annuityInterestRate then traceShow ("Rates differ slightly", actualRate, annuityInterestRate, realToFrac actualRate - realToFrac annuityInterestRate :: Double) else id) $
               -- If the interest amonut is more than how much we pay per month, then the loan can never be repayed
               if interestAmount >= repaymentAmount
-                then
-                  error $
-                    unwords
-                      [ "Can never repay the loan because the interest exceeds the repayment amount.",
-                        show interestAmount,
-                        ">=",
-                        show repaymentAmount
-                      ]
+                then -- error $
+                --   unwords
+                --     [ "Can never repay the loan because the interest exceeds the repayment amount.",
+                --       show interestAmount,
+                --       ">=",
+                --       show repaymentAmount
+                --     ]
+                  Nothing
                 else -- The amount that can go towards the principal is the difference between the total and the amonut that goes to interest
                 -- Principal amount = Repayment amount - Interest amount
 
@@ -129,13 +145,14 @@ calculateFloatingMaturity Annuity {..} repaymentAmount beginDay = go beginDay an
                    in -- If the amount that can go towards the principal is more than the amount of principal leftover
                       -- then this is the last payment
                       if principalAmount >= currentPrincipal -- Payment done
-                        then [(currentDay, (interestAmount, currentPrincipal, Amount.zero))]
-                        else -- Otherwise we make one payment
-                        -- Principal amount leftover = current principal amount - amount that goes towards principal
+                        then Just [(currentDay, (periodInterestRate, interestAmount, currentPrincipal, Amount.zero))]
+                        else do
+                          -- Otherwise we make one payment
+                          -- Principal amount leftover = current principal amount - amount that goes towards principal
 
                           let leftoverPrincipal = partialSubtract currentPrincipal principalAmount
-                           in (currentDay, (interestAmount, principalAmount, leftoverPrincipal))
-                                : go (calculateNextDay currentDay) leftoverPrincipal
+                          restPayments <- go currentDay leftoverPrincipal
+                          Just $ (currentDay, (periodInterestRate, interestAmount, principalAmount, leftoverPrincipal)) : restPayments
 
 partialSubtract :: Money.Amount -> Money.Amount -> Money.Amount
 partialSubtract a b = case Amount.subtract a b of
@@ -154,16 +171,19 @@ calculateNextDay d =
         then fromGregorian (y + 1) 1 dn
         else fromGregorian y (m + 1) dn
 
-calculateFloatingAmount :: Annuity -> Word -> Day -> [(Day, (Money.Amount, Money.Amount, Money.Amount))]
+calculateFloatingAmount :: Annuity -> Word -> Day -> Maybe [(Day, (Ratio Natural, Money.Amount, Money.Amount, Money.Amount))]
 calculateFloatingAmount annuity periods startDay =
-  let loAmount = Amount.zero -- TODO we should use a better lo because otherwise we might run into the error above (?)
+  let loAmount = Amount.zero
       hiAmount = annuityPrincipal annuity
       (_, result) =
         binarySearchAmount
           loAmount
           hiAmount
           (\a -> calculateFloatingMaturity annuity a startDay)
-          (\ps -> compare periods (fromIntegral (length ps)))
+          ( \mps -> case mps of
+              Nothing -> LT -- Amount is too low
+              Just ps -> compare periods (fromIntegral (length ps))
+          )
    in result
 
 binarySearchAmount :: Show r => Money.Amount -> Money.Amount -> (Money.Amount -> r) -> (r -> Ordering) -> (Money.Amount, r)
