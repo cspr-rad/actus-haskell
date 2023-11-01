@@ -23,7 +23,7 @@ actusMain :: IO ()
 actusMain = do
   args <- getArgs
   case args of
-    [totalPrincipalStr, interestRateStr, repaymentAmountStr, startDayStr] -> do
+    [totalPrincipalStr, interestRateStr, repaymentAmountStr, startDayStr, yearsStr] -> do
       totalPrincipal <- case readMaybe totalPrincipalStr >>= Amount.fromDouble minimalQuantisations of
         Nothing -> die "Could not read totalPrincipal"
         Just a -> pure a
@@ -37,13 +37,22 @@ actusMain = do
         Nothing -> die "Could not read start day"
         Just d -> pure d
       let annuity = Annuity {annuityPrincipal = totalPrincipal, annuityInterestRate = interestRate}
-      annuityAnalysis annuity repaymentAmount startDay
-    _ -> die "Usage: actus <totalPrincipal> <interestRatePercentage> <repaymentAmount> <startDay>"
+      periods <- case readMaybe yearsStr of
+        Nothing -> die "Could not read years"
+        Just d -> pure (d * 12)
+      annuityAnalysis annuity repaymentAmount startDay periods
+    _ -> die "Usage: actus <totalPrincipal> <interestRatePercentage> <repaymentAmount> <startDay> <years>"
 
-annuityAnalysis :: Annuity -> Money.Amount -> Day -> IO ()
-annuityAnalysis annuity repaymentAmount startDay = do
+annuityAnalysis :: Annuity -> Money.Amount -> Day -> Word -> IO ()
+annuityAnalysis annuity repaymentAmount startDay periods = do
   pPrint annuity
-  let payments = calculateFloatingMaturity annuity repaymentAmount startDay
+  putStrLn "Analysing annuity based on given amount and variable maturity"
+  printPayments $ calculateFloatingMaturity annuity repaymentAmount startDay
+  putStrLn "Analysing annuity based on given maturity and variable maturity"
+  printPayments $ calculateFloatingAmount annuity periods startDay
+
+printPayments :: [(Day, (Money.Amount, Money.Amount, Money.Amount))] -> IO ()
+printPayments payments = do
   forM_ payments $ \(day, (interest, principal, principalLeftover)) -> do
     let totalRepaid = partialAdd interest principal
     putStrLn $ unwords ["Payment on: " <> show day, " Interest paid:", formatUSD interest, " Principal repaid:", formatUSD principal, " Total paid:", formatUSD totalRepaid, " Principal leftover:", formatUSD principalLeftover]
@@ -126,3 +135,6 @@ calculateNextDay d =
    in if m == 12
         then fromGregorian (y + 1) 1 dn
         else fromGregorian y (m + 1) dn
+
+calculateFloatingAmount :: Annuity -> Word -> Day -> [(Day, (Money.Amount, Money.Amount, Money.Amount))]
+calculateFloatingAmount annuity periods startDay = []
