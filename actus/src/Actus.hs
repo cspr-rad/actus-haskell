@@ -64,7 +64,7 @@ printPayments payments = do
       unwords
         [ "Payment on: " <> show day,
           " Rate during this period",
-          printf "%.4f" ((realToFrac :: Ratio Natural -> Double) rateDuringThisPeriod),
+          printf "%.6f" ((realToFrac :: Ratio Natural -> Double) rateDuringThisPeriod),
           " Interest paid:",
           formatUSD interest,
           " Principal repaid:",
@@ -115,7 +115,7 @@ calculateFloatingMaturity Annuity {..} repaymentAmount beginDay = go beginDay an
         else
           let currentDay = calculateNextDay lastDay
               daysBetween = fromIntegral $ diffDays currentDay lastDay
-              periodInterestRate = daysBetween % 365
+              periodInterestRate = annuityInterestRate * (daysBetween % 365)
               -- Interest amount = current principal amount * interest rate
               (interestAmount, _) = Amount.fraction currentPrincipal periodInterestRate
            in -- (if actualRate /= annuityInterestRate then traceShow ("Rates differ slightly", actualRate, annuityInterestRate, realToFrac actualRate - realToFrac annuityInterestRate :: Double) else id) $
@@ -187,8 +187,8 @@ binarySearchAmount loAmount hiAmount compute order = go loAmount hiAmount
           result = compute mid
        in case order result of
             -- Result is less than we want, use the upper half
-            LT -> go mid hi
+            LT -> if mid == lo then (mid, result) else go mid hi
             -- Result is more than we want, use the lower half
-            GT -> go lo mid
+            GT -> if mid == hi then (mid, result) else go lo mid
             -- Result is found
             EQ -> (mid, result)
