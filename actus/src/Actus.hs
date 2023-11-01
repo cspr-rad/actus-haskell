@@ -113,7 +113,7 @@ calculateFloatingMaturity Annuity {..} repaymentAmount beginDay = go beginDay an
       if currentPrincipal == Amount.zero
         then Just []
         else
-          let currentDay = calculateNextDay lastDay
+          let currentDay = calculateNextMonth lastDay
               daysBetween = fromIntegral $ diffDays currentDay lastDay
               (y, _, _) = toGregorian lastDay
               yearLength = if isLeapYear y then 366 else 365
@@ -157,40 +157,54 @@ partialAdd a b = case Amount.add a b of
   Nothing -> error "Could not add"
   Just c -> c
 
-calculateNextDay :: Day -> Day
-calculateNextDay d =
+calculateNextMonth :: Day -> Day
+calculateNextMonth d =
   let (y, m, dn) = toGregorian d
    in if m == 12
         then fromGregorian (y + 1) 1 dn
         else fromGregorian y (m + 1) dn
 
 calculateFloatingAmount :: Annuity -> Word -> Day -> Maybe [(Day, (Ratio Natural, Money.Amount, Money.Amount, Money.Amount))]
-calculateFloatingAmount annuity periods startDay =
-  let loAmount = Amount.zero
-      hiAmount = annuityPrincipal annuity
-      (_, result) =
-        binarySearchAmount
-          loAmount
-          hiAmount
-          (\a -> calculateFloatingMaturity annuity a startDay)
-          ( \case
-              Nothing -> LT -- Amount is too low
-              Just ps -> compare periods (fromIntegral (length ps))
-          )
-   in result
+calculateFloatingAmount annuity@Annuity {..} periods startDay =
+  let ir_i :: [Ratio Natural]
+      ir_i = reverse $ goPeriods periods startDay
+        where
+          goPeriods :: Word -> Day -> [Ratio Natural]
+          goPeriods 0 _ = []
+          goPeriods i lastDay =
+            let (y, _, _) = toGregorian lastDay
+                yearLength = if isLeapYear y then 366 else 365
+                currentDay = calculateNextMonth lastDay
+             in (annuityInterestRate * (fromIntegral (diffDays currentDay lastDay) % yearLength))
+                  : goPeriods (pred i) currentDay
 
-binarySearchAmount :: Money.Amount -> Money.Amount -> (Money.Amount -> r) -> (r -> Ordering) -> (Money.Amount, r)
-binarySearchAmount loAmount hiAmount compute order = go loAmount hiAmount
-  where
-    go lo hi =
-      let diff = partialSubtract hi lo
-          (halfDiff, _) = Amount.fraction diff (1 % 2)
-          mid = partialAdd lo halfDiff
-          result = compute mid
-       in case order result of
-            -- Result is less than we want, use the upper half
-            LT -> if mid == lo then (mid, result) else go mid hi
-            -- Result is more than we want, use the lower half
-            GT -> if mid == hi then (mid, result) else go lo mid
-            -- Result is found
-            EQ -> (mid, result)
+      i_i :: Word -> Ratio Natural
+      i_i i = product $ map (\ir -> 1 + ir) (take (fromIntegral i) ir_i)
+
+      (amount, _) = fractionRoundedUp annuityPrincipal (i_i periods / (sum [i_i i | i <- [0 .. periods - 1]]))
+   in -- Let A_N be the outstanding debt after N months. Then
+      -- A_(N+1) = A_N * (1 + IR_N) - P
+      -- where IR_N is the interest rate during month N (dependent on the number of days in month N) and P is the payment (which should be the same all months). Iteratively, we then see that
+      -- A_N = A_0 * prod{i=0}^{N-1} (1 + IR_i) - P * sum_{i=0}_{N-1} prod_{j=0}_i (1 + IR_j)
+      -- Let I_i = prod_{j=0}^i (1 + IR_j), then this becomes
+      -- A_N = A_0 * I_N - P * sum_{i=0}_{N-1} I_i.
+      -- We then say A_N = 0, for a given N, and attempt to calculate P. As we can see from the last formula,
+      -- P = A_0 * I_N / sum_{i=0}_{N-1} I_i.
+      calculateFloatingMaturity annuity amount startDay
+
+fractionRoundedUp ::
+  Money.Amount ->
+  Ratio Natural ->
+  (Money.Amount, Ratio Natural)
+fractionRoundedUp (Money.Amount 0) f = (Amount.zero, f)
+fractionRoundedUp _ 0 = (Amount.zero, 0)
+fractionRoundedUp (Money.Amount a) f =
+  let theoreticalResult :: Ratio Natural
+      theoreticalResult = (fromIntegral :: Word64 -> Ratio Natural) a * f
+      roundedResult :: Word64
+      roundedResult = (ceiling :: Ratio Natural -> Word64) theoreticalResult
+      actualRate :: Ratio Natural
+      actualRate =
+        (fromIntegral :: Word64 -> Natural) roundedResult
+          % (fromIntegral :: Word64 -> Natural) a
+   in (Money.Amount roundedResult, actualRate)
