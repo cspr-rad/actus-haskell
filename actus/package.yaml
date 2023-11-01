@@ -16,6 +16,9 @@ ghc-options:
 library:
   source-dirs: src
   dependencies:
+    - pretty-show
+    - really-safe-money
+    - time
     - validity
 
 executables:

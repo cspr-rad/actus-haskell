@@ -2,6 +2,14 @@ resolver: lts-20.25
 packages:
 - actus
 
+extra-deps:
+- github: NorfairKing/really-safe-money
+  commit: 5bb0676e071f21472ad4b6115ee04c7e6575f799
+  subdirs:
+  - really-safe-money
+  - really-safe-money-autodocodec
+  - really-safe-money-gen
+
 nix:
   enable: false
 system-ghc: true

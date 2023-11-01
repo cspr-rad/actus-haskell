@@ -173,6 +173,22 @@
         "type": "github"
       }
     },
+    "really-safe-money": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1696952692,
+        "narHash": "sha256-SS+CjC6DZjB1SLS3o3BnZOsyylUiNEsrDovCiaOBdIw=",
+        "owner": "NorfairKing",
+        "repo": "really-safe-money",
+        "rev": "5bb0676e071f21472ad4b6115ee04c7e6575f799",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NorfairKing",
+        "repo": "really-safe-money",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "autodocodec": "autodocodec",
@@ -180,6 +196,7 @@
         "fast-myers-diff": "fast-myers-diff",
         "nixpkgs": "nixpkgs",
         "pre-commit-hooks": "pre-commit-hooks",
+        "really-safe-money": "really-safe-money",
         "safe-coloured-text": "safe-coloured-text",
         "sydtest": "sydtest",
         "validity": "validity"

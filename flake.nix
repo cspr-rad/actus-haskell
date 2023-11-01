@@ -13,6 +13,8 @@
     fast-myers-diff.flake = false;
     sydtest.url = "github:NorfairKing/sydtest";
     sydtest.flake = false;
+    really-safe-money.url = "github:NorfairKing/really-safe-money";
+    really-safe-money.flake = false;
     dekking.url = "github:NorfairKing/dekking";
     dekking.flake = false;
   };
@@ -26,6 +28,7 @@
     , autodocodec
     , fast-myers-diff
     , sydtest
+    , really-safe-money
     , dekking
     }:
     let
@@ -38,6 +41,7 @@
         (pkgs.callPackage (safe-coloured-text + "/nix/overrides.nix") { })
         (pkgs.callPackage (fast-myers-diff + "/nix/overrides.nix") { })
         (pkgs.callPackage (sydtest + "/nix/overrides.nix") { })
+        (pkgs.callPackage (really-safe-money + "/nix/overrides.nix") { })
         (pkgs.callPackage (dekking + "/nix/overrides.nix") { })
         self.overrides.${system}
       ];
@@ -47,7 +51,9 @@
     {
       overrides.${system} = pkgs.callPackage ./nix/overrides.nix { };
       overlays.${system} = import ./nix/overlay.nix;
+      packages.${system}.default = haskellPackages.actus;
       checks.${system} = {
+        release = haskellPackages.actusRelease;
         pre-commit = pre-commit-hooks.lib.${system}.run {
           src = ./.;
           hooks = {
@@ -63,7 +69,7 @@
       };
       devShells.${system}.default = haskellPackages.shellFor {
         name = "actus-haskell-shell";
-        packages = p: [ ]; # [p.actus];
+        packages = p: [ p.actus ];
         withHoogle = true;
         doBenchmark = true;
         buildInputs = (with pkgs; [
