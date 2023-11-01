@@ -13,23 +13,47 @@ import GHC.Generics (Generic)
 import qualified Money.Amount as Amount
 import qualified Money.Amount as Money
 import Numeric.Natural
+import System.Environment
+import System.Exit
 import Text.Printf
+import Text.Read
 import Text.Show.Pretty (pPrint)
 
 actusMain :: IO ()
 actusMain = do
-  putStrLn "hi"
-  pPrint exampleAnnuity
-  pPrint (calculateNextDay (fromGregorian 2023 01 01))
-  pPrint (calculateNextDay (fromGregorian 2023 12 01))
-  let payments = calculateFloatingMaturity exampleAnnuity (Amount.fromMinimalQuantisations $ 100 * 1000) (fromGregorian 2023 01 01)
+  args <- getArgs
+  case args of
+    [totalPrincipalStr, interestRateStr, repaymentAmountStr, startDayStr] -> do
+      totalPrincipal <- case readMaybe totalPrincipalStr >>= Amount.fromDouble minimalQuantisations of
+        Nothing -> die "Could not read totalPrincipal"
+        Just a -> pure a
+      interestRate <- case readMaybe interestRateStr of
+        Nothing -> die "Could not read interest rate percentage"
+        Just ir -> pure (ir % (100 * 12))
+      repaymentAmount <- case readMaybe repaymentAmountStr >>= Amount.fromDouble minimalQuantisations of
+        Nothing -> die "Could not read repaymentAmount"
+        Just a -> pure a
+      startDay <- case parseTimeM True defaultTimeLocale "%F" startDayStr of
+        Nothing -> die "Could not read start day"
+        Just d -> pure d
+      let annuity = Annuity {annuityPrincipal = totalPrincipal, annuityInterestRate = interestRate}
+      annuityAnalysis annuity repaymentAmount startDay
+    _ -> die "Usage: actus <totalPrincipal> <interestRatePercentage> <repaymentAmount> <startDay>"
+
+annuityAnalysis :: Annuity -> Money.Amount -> Day -> IO ()
+annuityAnalysis annuity repaymentAmount startDay = do
+  pPrint annuity
+  let payments = calculateFloatingMaturity annuity repaymentAmount startDay
   forM_ payments $ \(day, (interest, principal, principalLeftover)) -> do
     let totalRepaid = partialAdd interest principal
     putStrLn $ unwords ["Payment on: " <> show day, " Interest paid:", formatUSD interest, " Principal repaid:", formatUSD principal, " Total paid:", formatUSD totalRepaid, " Principal leftover:", formatUSD principalLeftover]
   putStrLn $ unwords ["Total number of payments:", show (length payments)]
 
 formatUSD :: Money.Amount -> String
-formatUSD = formatAmount 100 "USD"
+formatUSD = formatAmount minimalQuantisations "USD"
+
+minimalQuantisations :: Word32
+minimalQuantisations = 100
 
 formatAmount :: Word32 -> String -> Money.Amount -> String
 formatAmount minimalQuantisations symbol a = printf ("%10.2f " <> symbol) (Amount.toDouble minimalQuantisations a)
@@ -56,7 +80,7 @@ data Annuity = Annuity
 exampleAnnuity :: Annuity
 exampleAnnuity =
   Annuity
-    { annuityPrincipal = Amount.fromMinimalQuantisations $ 100 * 100_000, -- 100K
+    { annuityPrincipal = Amount.fromMinimalQuantisations $ 100_000, -- 100K
       annuityInterestRate = (4 % 100) / 12
     }
 
