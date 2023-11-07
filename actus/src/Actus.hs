@@ -1,10 +1,10 @@
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Actus (actusMain) where
 
 import Control.Monad
+import Data.Maybe
 import Data.Ratio
 import Data.Time
 import Data.Word
@@ -77,13 +77,10 @@ printPayments payments = do
   putStrLn $ unwords ["Total number of payments:", show (length payments)]
 
 formatUSD :: Money.Amount -> String
-formatUSD = formatAmount minimalQuantisations "USD"
+formatUSD a = printf "%10s %s" (Amount.format minimalQuantisations a) "USD"
 
 minimalQuantisations :: Word32
 minimalQuantisations = 100
-
-formatAmount :: Word32 -> String -> Money.Amount -> String
-formatAmount qs symbol a = printf ("%10.2f " <> symbol) (Amount.toDouble qs a)
 
 -- | Annuity
 --
@@ -119,7 +116,7 @@ calculateFloatingMaturity Annuity {..} repaymentAmount beginDay = go beginDay an
               yearLength = if isLeapYear y then 366 else 365
               periodInterestRate = annuityInterestRate * (daysBetween % yearLength)
               -- Interest amount = current principal amount * interest rate
-              (interestAmount, _) = Amount.fraction currentPrincipal periodInterestRate
+              (interestAmount, _) = partialFraction Money.RoundDown currentPrincipal periodInterestRate
            in -- (if actualRate /= annuityInterestRate then traceShow ("Rates differ slightly", actualRate, annuityInterestRate, realToFrac actualRate - realToFrac annuityInterestRate :: Double) else id) $
               -- If the interest amonut is more than how much we pay per month, then the loan can never be repayed
               if interestAmount >= repaymentAmount
@@ -180,9 +177,9 @@ calculateFloatingAmount annuity@Annuity {..} periods startDay =
                       ++ [annuityInterestRate * (fromIntegral (diffDays currentDay lastDay) % yearLength)]
 
       i_i :: Word -> Ratio Natural
-      i_i i = product $ map (\ir -> 1 + ir) (take (fromIntegral i) ir_i)
+      i_i i = product $ map (1 +) (take (fromIntegral i) ir_i)
 
-      (amount, _) = fractionRoundedUp annuityPrincipal (i_i periods / (sum [i_i i | i <- [0 .. periods - 1]]))
+      (amount, _) = partialFraction Money.RoundUp annuityPrincipal (i_i periods / sum [i_i i | i <- [0 .. periods - 1]])
    in -- Let A_N be the outstanding debt after N months. Then
       -- A_(N+1) = A_N * (1 + IR_N) - P
       -- where IR_N is the interest rate during month N (dependent on the number of days in month N) and P is the payment (which should be the same all months). Iteratively, we then see that
@@ -193,19 +190,11 @@ calculateFloatingAmount annuity@Annuity {..} periods startDay =
       -- P = A_0 * I_N / sum_{i=0}_{N-1} I_i.
       calculateFloatingMaturity annuity amount startDay
 
-fractionRoundedUp ::
+partialFraction ::
+  Money.Rounding ->
   Money.Amount ->
   Ratio Natural ->
   (Money.Amount, Ratio Natural)
-fractionRoundedUp (Money.Amount 0) f = (Amount.zero, f)
-fractionRoundedUp _ 0 = (Amount.zero, 0)
-fractionRoundedUp (Money.Amount a) f =
-  let theoreticalResult :: Ratio Natural
-      theoreticalResult = (fromIntegral :: Word64 -> Ratio Natural) a * f
-      roundedResult :: Word64
-      roundedResult = (ceiling :: Ratio Natural -> Word64) theoreticalResult
-      actualRate :: Ratio Natural
-      actualRate =
-        (fromIntegral :: Word64 -> Natural) roundedResult
-          % (fromIntegral :: Word64 -> Natural) a
-   in (Money.Amount roundedResult, actualRate)
+partialFraction ro a r =
+  let (ma, ra) = Amount.fraction ro a r
+   in (fromJust ma, ra)
