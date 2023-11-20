@@ -11,6 +11,7 @@ import Data.Word
 import GHC.Generics (Generic)
 import qualified Money.Amount as Amount
 import qualified Money.Amount as Money
+import Money.QuantisationFactor
 import Numeric.Natural
 import System.Environment
 import System.Exit
@@ -22,13 +23,13 @@ actusMain = do
   args <- getArgs
   case args of
     [totalPrincipalStr, interestRateStr, repaymentAmountStr, startDayStr, yearsStr] -> do
-      totalPrincipal <- case readMaybe totalPrincipalStr >>= Amount.fromDouble minimalQuantisations of
+      totalPrincipal <- case readMaybe totalPrincipalStr >>= Amount.fromDouble quantisationFactor of
         Nothing -> die "Could not read totalPrincipal"
         Just a -> pure a
       interestRate <- case readMaybe interestRateStr of
         Nothing -> die "Could not read interest rate percentage"
         Just ir -> pure (ir % 100)
-      repaymentAmount <- case readMaybe repaymentAmountStr >>= Amount.fromDouble minimalQuantisations of
+      repaymentAmount <- case readMaybe repaymentAmountStr >>= Amount.fromDouble quantisationFactor of
         Nothing -> die "Could not read repaymentAmount"
         Just a -> pure a
       startDay <- case parseTimeM True defaultTimeLocale "%F" startDayStr of
@@ -77,10 +78,10 @@ printPayments payments = do
   putStrLn $ unwords ["Total number of payments:", show (length payments)]
 
 formatUSD :: Money.Amount -> String
-formatUSD a = printf "%10s %s" (Amount.format minimalQuantisations a) "USD"
+formatUSD a = printf "%10s %s" (Amount.format quantisationFactor a) "USD"
 
-minimalQuantisations :: Word32
-minimalQuantisations = 100
+quantisationFactor :: QuantisationFactor
+quantisationFactor = QuantisationFactor 100
 
 -- | Annuity
 --

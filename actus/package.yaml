@@ -16,7 +16,8 @@ ghc-options:
 library:
   source-dirs: src
   dependencies:
-    - binary-search
+    - aeson
+    - autodocodec
     - pretty-show
     - really-safe-money
     - time
@@ -41,5 +42,17 @@ tests:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    build-tools: sydtest-discover
     dependencies:
     - actus
+    - aeson
+    - genvalidity
+    - genvalidity-sydtest
+    - genvalidity-sydtest-aeson
+    - genvalidity-time
+    - path
+    - path-io
+    - really-safe-money
+    - really-safe-money-gen
+    - sydtest
+    - time

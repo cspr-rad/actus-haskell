@@ -11,14 +11,16 @@ build-type:     Simple
 library
   exposed-modules:
       Actus
+      Actus.Types
   other-modules:
       Paths_actus
   hs-source-dirs:
       src
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
-      base >=4.7 && <5
-    , binary-search
+      aeson
+    , autodocodec
+    , base >=4.7 && <5
     , pretty-show
     , really-safe-money
     , time
@@ -41,11 +43,26 @@ test-suite actus-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Actus.Gen
+      Actus.TypesSpec
       Paths_actus
   hs-source-dirs:
       test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-tool-depends:
+      sydtest-discover:sydtest-discover
   build-depends:
       actus
+    , aeson
     , base >=4.7 && <5
+    , genvalidity
+    , genvalidity-sydtest
+    , genvalidity-sydtest-aeson
+    , genvalidity-time
+    , path
+    , path-io
+    , really-safe-money
+    , really-safe-money-gen
+    , sydtest
+    , time
   default-language: Haskell2010
