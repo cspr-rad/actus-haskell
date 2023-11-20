@@ -20,6 +20,7 @@ library:
     - autodocodec
     - pretty-show
     - really-safe-money
+    - really-safe-money-autodocodec
     - time
     - validity
 

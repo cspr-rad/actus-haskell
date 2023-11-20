@@ -14,6 +14,8 @@ import Data.Aeson.Types
 import Data.Ratio
 import Data.Time
 import Data.Typeable
+import qualified Money.Account as Money (Account)
+import qualified Money.Amount as Money (Amount)
 import Money.QuantisationFactor
 import Numeric.Natural
 import Path
@@ -39,12 +41,13 @@ spec = do
 
   testDataSpec @Actus.TimeZoneOffset testDataDir "time-zone-offset"
 
--- testDataSpec @Actus.QuantisationFactor testDataDir "quantisation-factor"
--- testDataSpec @Actus.Currency testDataDir "currency"
--- testDataSpec @Actus.Amount testDataDir "amount"
--- testDataSpec @Actus.Account testDataDir "account"
--- testDataSpec @Actus.Amount testDataDir "amount-with-currency"
--- testDataSpec @Actus.Account testDataDir "account-with-currency"
+  -- testDataSpec @Actus.QuantisationFactor testDataDir "quantisation-factor"
+  -- testDataSpec @Actus.Currency testDataDir "currency"
+  --
+  testDataSpec @Actus.Amount testDataDir "amount"
+  testDataSpec @Actus.Account testDataDir "account"
+  testDataSpec @Actus.Amount testDataDir "amount-with-currency"
+  testDataSpec @Actus.Account testDataDir "account-with-currency"
 
 testDataSpec ::
   forall a.
