@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
@@ -13,9 +14,12 @@ module Actus.Types
     Day,
     TimeOfDay,
     TimeZoneOffset (..),
+    Money.QuantisationFactor,
     Money.Amount,
     Money.Account,
     CurrencySymbol (..),
+    CurrencyIdentifiers (..),
+    Currency (..),
     AmountWithCurrency (..),
     AccountWithCurrency (..),
   )
@@ -33,6 +37,7 @@ import qualified Money.Account as Money (Account)
 import qualified Money.Account.Codec as Account
 import qualified Money.Amount as Money (Amount)
 import qualified Money.Amount.Codec as Amount
+import qualified Money.QuantisationFactor as Money (QuantisationFactor (..))
 import Numeric.Natural
 
 newtype TimeZoneOffset = TimeZoneOffset {unTimeZoneOffset :: Int16}
@@ -66,6 +71,55 @@ instance Validity CurrencySymbol
 
 instance HasCodec CurrencySymbol where
   codec = dimapCodec CurrencySymbol unCurrencySymbol codec
+
+instance HasCodec Money.QuantisationFactor where
+  codec = dimapCodec Money.QuantisationFactor Money.unQuantisationFactor codec
+
+deriving via (Autodocodec Money.QuantisationFactor) instance FromJSON Money.QuantisationFactor
+
+deriving via (Autodocodec Money.QuantisationFactor) instance ToJSON Money.QuantisationFactor
+
+data Currency = Currency {currencyIdentifiers :: !CurrencyIdentifiers, currencyQuantisationFactor :: Money.QuantisationFactor}
+  deriving stock (Show, Eq, Ord, Generic)
+  deriving (FromJSON, ToJSON) via (Autodocodec Currency)
+
+instance Validity Currency
+
+instance HasCodec Currency where
+  codec =
+    object "Currency" $
+      Currency
+        <$> objectCodec
+        .= currencyIdentifiers
+        <*> requiredField "factor" "currency quantisation factor"
+        .= currencyQuantisationFactor
+
+data CurrencyIdentifiers
+  = CurrencyIdentifierUid !CurrencySymbol
+  | CurrencyIdentifierSymbol !CurrencySymbol
+  | CurrencyIdentifierBoth !CurrencySymbol !CurrencySymbol
+  deriving stock (Show, Eq, Ord, Generic)
+
+instance Validity CurrencyIdentifiers
+
+instance HasObjectCodec CurrencyIdentifiers where
+  objectCodec =
+    bimapCodec f g $
+      (,)
+        <$> optionalField "uid" "currency uid"
+        .= fst
+        <*> optionalField "symbol" "currency symbol"
+        .= snd
+    where
+      f = \case
+        (Nothing, Nothing) -> Left "Either a uid or symbol is required"
+        (Just u, Nothing) -> Right $ CurrencyIdentifierUid u
+        (Nothing, Just s) -> Right $ CurrencyIdentifierSymbol s
+        (Just u, Just s) -> Right $ CurrencyIdentifierBoth u s
+      g = \case
+        CurrencyIdentifierUid u -> (Just u, Nothing)
+        CurrencyIdentifierSymbol s -> (Nothing, Just s)
+        CurrencyIdentifierBoth u s -> (Just u, Just s)
 
 data AmountWithCurrency = AmountWithCurrency
   { amountWithCurrencyAmount :: !Money.Amount,

@@ -41,9 +41,8 @@ spec = do
 
   testDataSpec @Actus.TimeZoneOffset testDataDir "time-zone-offset"
 
-  -- testDataSpec @Actus.QuantisationFactor testDataDir "quantisation-factor"
-  -- testDataSpec @Actus.Currency testDataDir "currency"
-  --
+  testDataSpec @Actus.QuantisationFactor testDataDir "quantisation-factor"
+  testDataSpec @Actus.Currency testDataDir "currency"
   testDataSpec @Actus.Amount testDataDir "amount"
   testDataSpec @Actus.Account testDataDir "account"
   testDataSpec @Actus.AmountWithCurrency testDataDir "amount-with-currency"
