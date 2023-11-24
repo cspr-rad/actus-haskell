@@ -7,7 +7,6 @@ import Control.Monad
 import Data.Maybe
 import Data.Ratio
 import Data.Time
-import Data.Word
 import GHC.Generics (Generic)
 import qualified Money.Amount as Amount
 import qualified Money.Amount as Money

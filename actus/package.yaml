@@ -21,8 +21,10 @@ library:
     - pretty-show
     - really-safe-money
     - really-safe-money-autodocodec
+    - text
     - time
     - validity
+    - validity-text
 
 executables:
   actus:
@@ -50,10 +52,12 @@ tests:
     - genvalidity
     - genvalidity-sydtest
     - genvalidity-sydtest-aeson
+    - genvalidity-text
     - genvalidity-time
     - path
     - path-io
     - really-safe-money
     - really-safe-money-gen
     - sydtest
+    - text
     - time

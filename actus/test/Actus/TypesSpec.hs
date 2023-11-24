@@ -46,8 +46,8 @@ spec = do
   --
   testDataSpec @Actus.Amount testDataDir "amount"
   testDataSpec @Actus.Account testDataDir "account"
-  testDataSpec @Actus.Amount testDataDir "amount-with-currency"
-  testDataSpec @Actus.Account testDataDir "account-with-currency"
+  testDataSpec @Actus.AmountWithCurrency testDataDir "amount-with-currency"
+  testDataSpec @Actus.AccountWithCurrency testDataDir "account-with-currency"
 
 testDataSpec ::
   forall a.
