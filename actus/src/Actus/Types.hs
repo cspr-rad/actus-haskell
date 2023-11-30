@@ -38,6 +38,7 @@ import qualified Money.Account.Codec as Account
 import qualified Money.Amount as Money (Amount)
 import qualified Money.Amount.Codec as Amount
 import qualified Money.QuantisationFactor as Money (QuantisationFactor (..))
+import qualified Money.QuantisationFactor.Codec as QuantisationFactor
 import Numeric.Natural
 
 newtype TimeZoneOffset = TimeZoneOffset {unTimeZoneOffset :: Int16}
@@ -73,7 +74,7 @@ instance HasCodec CurrencySymbol where
   codec = dimapCodec CurrencySymbol unCurrencySymbol codec
 
 instance HasCodec Money.QuantisationFactor where
-  codec = dimapCodec Money.QuantisationFactor Money.unQuantisationFactor codec
+  codec = QuantisationFactor.codecViaNumber
 
 deriving via (Autodocodec Money.QuantisationFactor) instance FromJSON Money.QuantisationFactor
 

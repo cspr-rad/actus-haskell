@@ -26,7 +26,7 @@ import Test.Syd.Validity.Aeson
 
 spec :: Spec
 spec = do
-  -- TODO pass in the test data somehwo
+  -- TODO pass in the test data somehow
   testDataDir <- resolveDir' "../../actus-spec/spec/test-data"
   testDataSpec @Actus.Integer testDataDir "integer"
   testDataSpec @Actus.Natural testDataDir "natural"
