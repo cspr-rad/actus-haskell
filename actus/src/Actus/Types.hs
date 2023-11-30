@@ -10,8 +10,11 @@
 
 module Actus.Types
   ( Integer,
+    Rational (..),
+    PositiveRational (..),
     Natural,
     Day,
+    LocalTime,
     TimeOfDay,
     TimeZoneOffset (..),
     Money.QuantisationFactor,
@@ -28,6 +31,7 @@ where
 import Autodocodec
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Int
+import Data.Ratio hiding (Rational)
 import Data.Text (Text)
 import Data.Time
 import Data.Validity
@@ -40,6 +44,35 @@ import qualified Money.Amount.Codec as Amount
 import qualified Money.QuantisationFactor as Money (QuantisationFactor (..))
 import qualified Money.QuantisationFactor.Codec as QuantisationFactor
 import Numeric.Natural
+import Prelude hiding (Rational)
+
+newtype Rational = Rational {unRational :: Ratio Integer}
+  deriving stock (Show, Eq, Ord, Generic)
+  deriving (FromJSON, ToJSON) via (Autodocodec Rational)
+
+instance Validity Rational
+
+instance HasCodec Rational where
+  codec = bimapCodec f g codec
+    where
+      f = \case
+        [n, d] | d > 0 -> Right $ Rational $ n % d
+        l -> Left $ "Expected exactly two numbers in the list where the second is strictly positive, but got: " <> show l
+      g (Rational r) = [numerator r, denominator r]
+
+newtype PositiveRational = PositiveRational {unPositiveRational :: Ratio Natural}
+  deriving stock (Show, Eq, Ord, Generic)
+  deriving (FromJSON, ToJSON) via (Autodocodec PositiveRational)
+
+instance Validity PositiveRational
+
+instance HasCodec PositiveRational where
+  codec = bimapCodec f g codec
+    where
+      f = \case
+        [n, d] | d /= 0 -> Right $ PositiveRational $ n % d
+        l -> Left $ "Expected exactly two numbers in the list where the second is not zero, but got: " <> show l
+      g (PositiveRational r) = [numerator r, denominator r]
 
 newtype TimeZoneOffset = TimeZoneOffset {unTimeZoneOffset :: Int16}
   deriving stock (Show, Eq, Ord, Generic)

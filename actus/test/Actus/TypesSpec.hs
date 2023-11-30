@@ -11,13 +11,7 @@ import qualified Actus.Types as Actus
 import Control.Monad
 import Data.Aeson as JSON
 import Data.Aeson.Types
-import Data.Ratio
-import Data.Time
 import Data.Typeable
-import qualified Money.Account as Money (Account)
-import qualified Money.Amount as Money (Amount)
-import Money.QuantisationFactor
-import Numeric.Natural
 import Path
 import Path.IO
 import Test.Syd
@@ -31,13 +25,13 @@ spec = do
   testDataSpec @Actus.Integer testDataDir "integer"
   testDataSpec @Actus.Natural testDataDir "natural"
 
-  -- testDataSpec @(Ratio Integer) testDataDir "rational"
-  -- testDataSpec @(Ratio Natural) testDataDir "positive-rational"
+  testDataSpec @Actus.Rational testDataDir "rational"
+  testDataSpec @Actus.PositiveRational testDataDir "positive-rational"
 
   testDataSpec @Actus.Day testDataDir "day"
 
-  -- testDataSpec @Actus.TimeOfDay testDataDir "time-of-day"
-  -- testDataSpec @Actus.LocalTime testDataDir "local-date-time"
+  testDataSpec @Actus.TimeOfDay testDataDir "time-of-day"
+  testDataSpec @Actus.LocalTime testDataDir "local-date-time"
 
   testDataSpec @Actus.TimeZoneOffset testDataDir "time-zone-offset"
 
