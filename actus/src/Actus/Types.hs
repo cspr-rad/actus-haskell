@@ -124,9 +124,9 @@ instance HasCodec Currency where
     object "Currency" $
       Currency
         <$> objectCodec
-        .= currencyIdentifiers
+          .= currencyIdentifiers
         <*> requiredField "factor" "currency quantisation factor"
-        .= currencyQuantisationFactor
+          .= currencyQuantisationFactor
 
 data CurrencyIdentifiers
   = CurrencyIdentifierUid !CurrencySymbol
@@ -141,9 +141,9 @@ instance HasObjectCodec CurrencyIdentifiers where
     bimapCodec f g $
       (,)
         <$> optionalField "uid" "currency uid"
-        .= fst
+          .= fst
         <*> optionalField "symbol" "currency symbol"
-        .= snd
+          .= snd
     where
       f = \case
         (Nothing, Nothing) -> Left "Either a uid or symbol is required"
@@ -169,9 +169,9 @@ instance HasCodec AmountWithCurrency where
     object "AmountWithCurrency" $
       AmountWithCurrency
         <$> requiredField "amount" "amount"
-        .= amountWithCurrencyAmount
+          .= amountWithCurrencyAmount
         <*> requiredField "currency" "currency"
-        .= amountWithCurrencySymbol
+          .= amountWithCurrencySymbol
 
 data AccountWithCurrency = AccountWithCurrency
   { accountWithCurrencyAccount :: !Money.Account,
@@ -187,6 +187,6 @@ instance HasCodec AccountWithCurrency where
     object "AccountWithCurrency" $
       AccountWithCurrency
         <$> requiredField "account" "account"
-        .= accountWithCurrencyAccount
+          .= accountWithCurrencyAccount
         <*> requiredField "currency" "currency"
-        .= accountWithCurrencySymbol
+          .= accountWithCurrencySymbol

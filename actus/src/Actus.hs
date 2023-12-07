@@ -75,7 +75,7 @@ printPayments payments = do
           formatUSD principalLeftover
         ]
   putStrLn $ unwords ["Total number of payments:", show (length payments)]
-  putStrLn $ unwords ["Total interest:", maybe "" formatUSD $ Amount.sum (map (\(_,(_,i,_,_)) -> i) payments)]
+  putStrLn $ unwords ["Total interest:", maybe "" formatUSD $ Amount.sum (map (\(_, (_, i, _, _)) -> i) payments)]
 
 formatUSD :: Money.Amount -> String
 formatUSD a = printf "%10s %s" (Amount.format quantisationFactor a) "USD"
