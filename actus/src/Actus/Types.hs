@@ -14,14 +14,13 @@ module Actus.Types
     PositiveRational (..),
     Natural,
     Day,
-    LocalTime,
-    TimeOfDay,
+    SecondOfDay (..),
+    LocalSecond (..),
     TimeZoneOffset (..),
     Money.QuantisationFactor,
     Money.Amount,
     Money.Account,
     CurrencySymbol (..),
-    CurrencyIdentifiers (..),
     Currency (..),
     AmountWithCurrency (..),
     AccountWithCurrency (..),
@@ -36,6 +35,8 @@ import Data.Text (Text)
 import Data.Time
 import Data.Validity
 import Data.Validity.Text ()
+import Data.Validity.Time ()
+import Data.Word
 import GHC.Generics (Generic)
 import qualified Money.Account as Money (Account)
 import qualified Money.Account.Codec as Account
@@ -73,6 +74,52 @@ instance HasCodec PositiveRational where
         [n, d] | d /= 0 -> Right $ PositiveRational $ n % d
         l -> Left $ "Expected exactly two numbers in the list where the second is not zero, but got: " <> show l
       g (PositiveRational r) = [numerator r, denominator r]
+
+newtype SecondOfDay = SecondOfDay {unSecondOfDay :: Word32}
+  deriving stock (Show, Eq, Ord, Generic)
+  deriving (FromJSON, ToJSON) via (Autodocodec SecondOfDay)
+
+instance Validity SecondOfDay where
+  validate sod@(SecondOfDay w) =
+    mconcat
+      [ genericValidate sod,
+        declare "The second fits within a day" $
+          w <= 60 * 60 * 24
+      ]
+
+instance HasCodec SecondOfDay where
+  codec = bimapCodec f g codec
+    where
+      f s = case parseTimeM False defaultTimeLocale formatStr s of
+        Nothing -> Left $ unwords ["Could not parse SecondOfDay:", s]
+        Just tod -> Right $ timeOfDayToSecondOfDay tod
+      g = formatTime defaultTimeLocale formatStr . secondOfDayToTimeOfDay
+      formatStr = "%T"
+
+secondOfDayToTimeOfDay :: SecondOfDay -> TimeOfDay
+secondOfDayToTimeOfDay = timeToTimeOfDay . fromIntegral . unSecondOfDay
+
+-- Note that this loses information
+timeOfDayToSecondOfDay :: TimeOfDay -> SecondOfDay
+timeOfDayToSecondOfDay = SecondOfDay . round . timeOfDayToTime
+
+data LocalSecond = LocalSecond !Day !SecondOfDay
+  deriving stock (Show, Eq, Ord, Generic)
+  deriving (FromJSON, ToJSON) via (Autodocodec LocalSecond)
+
+instance Validity LocalSecond
+
+instance HasCodec LocalSecond where
+  codec = bimapCodec f g codec
+    where
+      f s = case parseTimeM False defaultTimeLocale formatStr s of
+        Nothing -> Left $ unwords ["Could not parse LocalSecond:", s]
+        Just (LocalTime d tod) -> Right (LocalSecond d (timeOfDayToSecondOfDay tod))
+      g (LocalSecond d sod) =
+        formatTime defaultTimeLocale formatStr $
+          LocalTime d $
+            secondOfDayToTimeOfDay sod
+      formatStr = "%F %T"
 
 newtype TimeZoneOffset = TimeZoneOffset {unTimeZoneOffset :: Int16}
   deriving stock (Show, Eq, Ord, Generic)
@@ -113,7 +160,10 @@ deriving via (Autodocodec Money.QuantisationFactor) instance FromJSON Money.Quan
 
 deriving via (Autodocodec Money.QuantisationFactor) instance ToJSON Money.QuantisationFactor
 
-data Currency = Currency {currencyIdentifiers :: !CurrencyIdentifiers, currencyQuantisationFactor :: Money.QuantisationFactor}
+data Currency = Currency
+  { currencySymbol :: !(Maybe CurrencySymbol),
+    currencyQuantisationFactor :: Money.QuantisationFactor
+  }
   deriving stock (Show, Eq, Ord, Generic)
   deriving (FromJSON, ToJSON) via (Autodocodec Currency)
 
@@ -123,37 +173,10 @@ instance HasCodec Currency where
   codec =
     object "Currency" $
       Currency
-        <$> objectCodec
-          .= currencyIdentifiers
+        <$> optionalField "symbol" "currency symbol"
+          .= currencySymbol
         <*> requiredField "factor" "currency quantisation factor"
           .= currencyQuantisationFactor
-
-data CurrencyIdentifiers
-  = CurrencyIdentifierUid !CurrencySymbol
-  | CurrencyIdentifierSymbol !CurrencySymbol
-  | CurrencyIdentifierBoth !CurrencySymbol !CurrencySymbol
-  deriving stock (Show, Eq, Ord, Generic)
-
-instance Validity CurrencyIdentifiers
-
-instance HasObjectCodec CurrencyIdentifiers where
-  objectCodec =
-    bimapCodec f g $
-      (,)
-        <$> optionalField "uid" "currency uid"
-          .= fst
-        <*> optionalField "symbol" "currency symbol"
-          .= snd
-    where
-      f = \case
-        (Nothing, Nothing) -> Left "Either a uid or symbol is required"
-        (Just u, Nothing) -> Right $ CurrencyIdentifierUid u
-        (Nothing, Just s) -> Right $ CurrencyIdentifierSymbol s
-        (Just u, Just s) -> Right $ CurrencyIdentifierBoth u s
-      g = \case
-        CurrencyIdentifierUid u -> (Just u, Nothing)
-        CurrencyIdentifierSymbol s -> (Nothing, Just s)
-        CurrencyIdentifierBoth u s -> (Just u, Just s)
 
 data AmountWithCurrency = AmountWithCurrency
   { amountWithCurrencyAmount :: !Money.Amount,

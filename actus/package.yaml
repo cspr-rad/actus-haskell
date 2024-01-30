@@ -25,6 +25,7 @@ library:
     - time
     - validity
     - validity-text
+    - validity-time
 
 executables:
   actus:
@@ -47,6 +48,7 @@ tests:
     - -with-rtsopts=-N
     build-tools: sydtest-discover
     dependencies:
+    - QuickCheck
     - actus
     - aeson
     - genvalidity

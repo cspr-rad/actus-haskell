@@ -17,6 +17,7 @@
     really-safe-money.flake = false;
     dekking.url = "github:NorfairKing/dekking";
     dekking.flake = false;
+    actus-spec.url = "github:cspr-rad/actus-spec";
   };
 
   outputs =
@@ -30,11 +31,13 @@
     , sydtest
     , really-safe-money
     , dekking
+    , actus-spec
     }:
     let
       system = "x86_64-linux";
       nixpkgsFor = nixpkgs: import nixpkgs {
-        inherit system; config.allowUnfree = true;
+        inherit system;
+        config.allowUnfree = true;
       };
       pkgs = nixpkgsFor nixpkgs;
       allOverrides = pkgs.lib.composeManyExtensions [
@@ -49,9 +52,12 @@
       ];
       haskellPackagesFor = nixpkgs: (nixpkgsFor nixpkgs).haskellPackages.extend allOverrides;
       haskellPackages = haskellPackagesFor nixpkgs;
+      actusSpec = actus-spec.packages.${system}.spec;
     in
     {
-      overrides.${system} = pkgs.callPackage ./nix/overrides.nix { };
+      overrides.${system} = pkgs.callPackage ./nix/overrides.nix {
+        inherit actusSpec;
+      };
       overlays.${system} = import ./nix/overlay.nix;
       packages.${system}.default = haskellPackages.actus;
       checks.${system} = {
@@ -87,6 +93,7 @@
             tagref
           ]);
         shellHook = self.checks.${system}.pre-commit.shellHook;
+        ACTUS_SPEC = actusSpec;
       };
     };
 }

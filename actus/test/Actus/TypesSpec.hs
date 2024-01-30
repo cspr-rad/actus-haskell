@@ -14,6 +14,7 @@ import Data.Aeson.Types
 import Data.Typeable
 import Path
 import Path.IO
+import System.Environment
 import Test.Syd
 import Test.Syd.Validity
 import Test.Syd.Validity.Aeson
@@ -21,7 +22,10 @@ import Test.Syd.Validity.Aeson
 spec :: Spec
 spec = do
   -- TODO pass in the test data somehow
-  testDataDir <- resolveDir' "../../actus-spec/spec/test-data"
+  testDataDir <- liftIO $ do
+    specDir <- getEnv "ACTUS_SPEC" >>= resolveDir'
+    resolveDir specDir "test-data"
+
   testDataSpec @Actus.Integer testDataDir "integer"
   testDataSpec @Actus.Natural testDataDir "natural"
 
@@ -30,8 +34,8 @@ spec = do
 
   testDataSpec @Actus.Day testDataDir "day"
 
-  testDataSpec @Actus.TimeOfDay testDataDir "time-of-day"
-  testDataSpec @Actus.LocalTime testDataDir "local-date-time"
+  testDataSpec @Actus.SecondOfDay testDataDir "second-of-day"
+  testDataSpec @Actus.LocalSecond testDataDir "local-second"
 
   testDataSpec @Actus.TimeZoneOffset testDataDir "time-zone-offset"
 
@@ -56,6 +60,7 @@ testDataSpec ::
   Spec
 testDataSpec testDataDir name =
   describe name $ do
+    genValidSpec @a
     jsonSpec @a
     describe "parsing" $ do
       describe "positive" $ do

@@ -28,6 +28,7 @@ library
     , time
     , validity
     , validity-text
+    , validity-time
   default-language: Haskell2010
 
 executable actus
@@ -55,7 +56,8 @@ test-suite actus-test
   build-tool-depends:
       sydtest-discover:sydtest-discover
   build-depends:
-      actus
+      QuickCheck
+    , actus
     , aeson
     , base >=4.7 && <5
     , genvalidity

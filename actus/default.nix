@@ -1,9 +1,9 @@
 { mkDerivation, aeson, autodocodec, base, genvalidity
 , genvalidity-sydtest, genvalidity-sydtest-aeson, genvalidity-text
-, genvalidity-time, lib, path, path-io, pretty-show
+, genvalidity-time, lib, path, path-io, pretty-show, QuickCheck
 , really-safe-money, really-safe-money-autodocodec
 , really-safe-money-gen, sydtest, sydtest-discover, text, time
-, validity, validity-text
+, validity, validity-text, validity-time
 }:
 mkDerivation {
   pname = "actus";
@@ -14,12 +14,14 @@ mkDerivation {
   libraryHaskellDepends = [
     aeson autodocodec base pretty-show really-safe-money
     really-safe-money-autodocodec text time validity validity-text
+    validity-time
   ];
   executableHaskellDepends = [ base ];
   testHaskellDepends = [
     aeson base genvalidity genvalidity-sydtest
     genvalidity-sydtest-aeson genvalidity-text genvalidity-time path
-    path-io really-safe-money really-safe-money-gen sydtest text time
+    path-io QuickCheck really-safe-money really-safe-money-gen sydtest
+    text time
   ];
   testToolDepends = [ sydtest-discover ];
   license = "unknown";

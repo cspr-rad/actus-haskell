@@ -9,16 +9,20 @@ import Data.GenValidity.Time ()
 import Money.Account.Gen ()
 import Money.Amount.Gen ()
 import Money.QuantisationFactor.Gen ()
+import Test.QuickCheck
 
 instance GenValid Actus.Rational
 
 instance GenValid Actus.PositiveRational
 
+instance GenValid Actus.SecondOfDay where
+  genValid = SecondOfDay <$> choose (0, 60 * 60 * 24)
+
+instance GenValid Actus.LocalSecond
+
 instance GenValid Actus.TimeZoneOffset
 
 instance GenValid Actus.CurrencySymbol
-
-instance GenValid Actus.CurrencyIdentifiers
 
 instance GenValid Actus.Currency
 
