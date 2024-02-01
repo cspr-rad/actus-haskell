@@ -4,6 +4,7 @@ module Actus.Gen where
 
 import Actus.Types as Actus
 import Data.GenValidity
+import Data.GenValidity.Containers ()
 import Data.GenValidity.Text ()
 import Data.GenValidity.Time ()
 import Money.Account.Gen ()
@@ -25,6 +26,8 @@ instance GenValid Actus.TimeZoneOffset
 instance GenValid Actus.CurrencySymbol
 
 instance GenValid Actus.Currency
+
+instance GenValid Actus.Currencies
 
 instance GenValid Actus.AmountWithCurrency
 

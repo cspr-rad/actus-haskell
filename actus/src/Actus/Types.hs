@@ -22,6 +22,7 @@ module Actus.Types
     Money.Account,
     CurrencySymbol (..),
     Currency (..),
+    Currencies (..),
     AmountWithCurrency (..),
     AccountWithCurrency (..),
   )
@@ -30,10 +31,12 @@ where
 import Autodocodec
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Int
+import Data.Map (Map)
 import Data.Ratio hiding (Rational)
 import Data.Text (Text)
 import Data.Time
 import Data.Validity
+import Data.Validity.Containers ()
 import Data.Validity.Text ()
 import Data.Validity.Time ()
 import Data.Word
@@ -177,6 +180,15 @@ instance HasCodec Currency where
           .= currencySymbol
         <*> requiredField "factor" "currency quantisation factor"
           .= currencyQuantisationFactor
+
+newtype Currencies = Currencies {unCurrencies :: Map Text Currency}
+  deriving stock (Show, Eq, Ord, Generic)
+  deriving (FromJSON, ToJSON) via (Autodocodec Currencies)
+
+instance Validity Currencies
+
+instance HasCodec Currencies where
+  codec = dimapCodec Currencies unCurrencies codec
 
 data AmountWithCurrency = AmountWithCurrency
   { amountWithCurrencyAmount :: !Money.Amount,

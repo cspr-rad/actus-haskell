@@ -32,20 +32,28 @@ spec = do
   testDataSpec @Actus.Rational testDataDir "rational"
   testDataSpec @Actus.PositiveRational testDataDir "positive-rational"
 
+  -- No real type
   testDataSpec @Actus.Day testDataDir "day"
 
   testDataSpec @Actus.SecondOfDay testDataDir "second-of-day"
   testDataSpec @Actus.LocalSecond testDataDir "local-second"
 
   testDataSpec @Actus.TimeZoneOffset testDataDir "time-zone-offset"
+  -- No timezone type yet
 
   testDataSpec @Actus.QuantisationFactor testDataDir "quantisation-factor"
   testDataSpec @Actus.Currency testDataDir "currency"
+  testDataSpec @Actus.Currencies testDataDir "currencies"
+
   testDataSpec @Actus.Amount testDataDir "amount"
   testDataSpec @Actus.Account testDataDir "account"
   testDataSpec @Actus.AmountWithCurrency testDataDir "amount-with-currency"
   testDataSpec @Actus.AccountWithCurrency testDataDir "account-with-currency"
 
+-- TODO contract
+-- TODO contracts
+-- TODO ACTUS file
+-- TODO ACTUS test
 testDataSpec ::
   forall a.
   ( Show a,

@@ -18,12 +18,14 @@ library:
   dependencies:
     - aeson
     - autodocodec
+    - containers
     - pretty-show
     - really-safe-money
     - really-safe-money-autodocodec
     - text
     - time
     - validity
+    - validity-containers
     - validity-text
     - validity-time
 
@@ -52,6 +54,7 @@ tests:
     - actus
     - aeson
     - genvalidity
+    - genvalidity-containers
     - genvalidity-sydtest
     - genvalidity-sydtest-aeson
     - genvalidity-text
