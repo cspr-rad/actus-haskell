@@ -5,6 +5,7 @@ module Actus.Gen where
 import Actus.Types as Actus
 import Data.GenValidity
 import Data.GenValidity.Containers ()
+import Data.GenValidity.Scientific ()
 import Data.GenValidity.Text ()
 import Data.GenValidity.Time ()
 import Money.Account.Gen ()
@@ -32,3 +33,9 @@ instance GenValid Actus.Currencies
 instance GenValid Actus.AmountWithCurrency
 
 instance GenValid Actus.AccountWithCurrency
+
+instance GenValid Actus.Term
+
+instance GenValid Actus.Contract
+
+instance GenValid Actus.Contracts

@@ -22,10 +22,12 @@ library:
     - pretty-show
     - really-safe-money
     - really-safe-money-autodocodec
+    - scientific
     - text
     - time
     - validity
     - validity-containers
+    - validity-scientific
     - validity-text
     - validity-time
 
@@ -55,6 +57,7 @@ tests:
     - aeson
     - genvalidity
     - genvalidity-containers
+    - genvalidity-scientific
     - genvalidity-sydtest
     - genvalidity-sydtest-aeson
     - genvalidity-text

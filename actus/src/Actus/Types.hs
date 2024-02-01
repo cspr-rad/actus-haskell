@@ -25,18 +25,24 @@ module Actus.Types
     Currencies (..),
     AmountWithCurrency (..),
     AccountWithCurrency (..),
+    Term (..),
+    Contract (..),
+    Contracts (..),
   )
 where
 
 import Autodocodec
 import Data.Aeson (FromJSON, ToJSON)
+import qualified Data.Aeson as JSON
 import Data.Int
 import Data.Map (Map)
 import Data.Ratio hiding (Rational)
+import Data.Scientific
 import Data.Text (Text)
 import Data.Time
 import Data.Validity
 import Data.Validity.Containers ()
+import Data.Validity.Scientific ()
 import Data.Validity.Text ()
 import Data.Validity.Time ()
 import Data.Word
@@ -225,3 +231,62 @@ instance HasCodec AccountWithCurrency where
           .= accountWithCurrencyAccount
         <*> requiredField "currency" "currency"
           .= accountWithCurrencySymbol
+
+data Term
+  = TermNull
+  | TermBool !Bool
+  | TermText !Text
+  | TermNumber !Scientific
+  deriving stock (Show, Eq, Ord, Generic)
+  deriving (FromJSON, ToJSON) via (Autodocodec Term)
+
+instance Validity Term
+
+instance HasCodec Term where
+  codec = bimapCodec f g codec
+    where
+      f = \case
+        JSON.Null -> Right TermNull
+        JSON.Bool b -> Right $ TermBool b
+        JSON.String t -> Right $ TermText t
+        JSON.Number n -> Right $ TermNumber n
+        JSON.Array _ -> Left "Unexpected term: JSON Array"
+        JSON.Object _ -> Left "Unexpected term: JSON Object"
+
+      g = \case
+        TermNull -> JSON.Null
+        TermBool b -> JSON.Bool b
+        TermText t -> JSON.String t
+        TermNumber n -> JSON.Number n
+
+newtype Contract = Contract {unContract :: Map Text Term}
+  deriving stock (Show, Eq, Ord, Generic)
+  deriving (FromJSON, ToJSON) via (Autodocodec Contract)
+
+instance Validity Contract
+
+instance HasCodec Contract where
+  codec = dimapCodec Contract unContract codec
+
+newtype Contracts = Contracts {unContracts :: Map Text Contract}
+  deriving stock (Show, Eq, Ord, Generic)
+  deriving (FromJSON, ToJSON) via (Autodocodec Contracts)
+
+instance Validity Contracts
+
+instance HasCodec Contracts where
+  codec = dimapCodec Contracts unContracts codec
+
+data ActusFile = ActusFile
+  { actusFileCurrencies :: !Currencies,
+    actusFileContracts :: !Contracts
+  }
+  deriving stock (Show, Eq, Ord, Generic)
+  deriving (FromJSON, ToJSON) via (Autodocodec ActusFile)
+
+instance HasCodec ActusFile where
+  codec =
+    object "ActusFile" $
+      ActusFile
+        <$> requiredField "currencies" "currencies" .= actusFileCurrencies
+        <*> requiredField "contracts" "contracts" .= actusFileContracts

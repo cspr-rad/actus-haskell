@@ -50,10 +50,12 @@ spec = do
   testDataSpec @Actus.AmountWithCurrency testDataDir "amount-with-currency"
   testDataSpec @Actus.AccountWithCurrency testDataDir "account-with-currency"
 
--- TODO contract
--- TODO contracts
--- TODO ACTUS file
--- TODO ACTUS test
+  testDataSpec @Actus.Contract testDataDir "contract"
+  testDataSpec @Actus.Contracts testDataDir "contracts"
+
+-- testDataSpec @Actus.Contracts testDataDir "actus-file"
+-- testDataSpec @Actus.Contracts testDataDir "actus-test"
+
 testDataSpec ::
   forall a.
   ( Show a,
