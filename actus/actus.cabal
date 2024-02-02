@@ -11,6 +11,10 @@ build-type:     Simple
 library
   exposed-modules:
       Actus
+      Actus.Contract.Ann
+      Actus.Contract.Class
+      Actus.Term.Class
+      Actus.Term.ContractIdentifier
       Actus.Types
   other-modules:
       Paths_actus
@@ -51,7 +55,13 @@ test-suite actus-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Actus.Contract.Ann.Gen
+      Actus.Contract.AnnSpec
+      Actus.Contract.TestUtils
       Actus.Gen
+      Actus.Term.ContractIdentifier.Gen
+      Actus.Term.ContractIdentifierSpec
+      Actus.Term.TestUtils
       Actus.TypesSpec
       Paths_actus
   hs-source-dirs:
