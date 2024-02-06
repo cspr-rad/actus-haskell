@@ -10,5 +10,7 @@ import Test.Syd.Validity
 
 spec :: Spec
 spec = do
+  testDataDir <- resolveTermTestDataDir
+
   genValidSpec @ContractIdentifier
-  termSpec @ContractIdentifier
+  termSpec @ContractIdentifier testDataDir "contractID"
