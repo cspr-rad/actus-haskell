@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
@@ -8,6 +9,8 @@ import Actus.Contract.Class
 import Actus.Term.Class
 import Actus.Term.ContractIdentifier
 import Actus.Types
+import Autodocodec
+import Data.Aeson (FromJSON, ToJSON)
 import qualified Data.Map as M
 import Data.Validity
 import GHC.Generics (Generic)
@@ -15,7 +18,8 @@ import GHC.Generics (Generic)
 data AnnContract = AnnContract
   { annContractIdentifier :: !ContractIdentifier
   }
-  deriving (Show, Eq, Generic)
+  deriving stock (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON) via (Autodocodec AnnContract)
 
 instance Validity AnnContract
 
@@ -30,3 +34,6 @@ instance IsContract AnnContract where
       M.fromList
         [ ("contractID", toTerm annContractIdentifier)
         ]
+
+instance HasCodec AnnContract where
+  codec = bimapCodec fromContract toContract codec

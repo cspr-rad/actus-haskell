@@ -10,5 +10,7 @@ import Test.Syd.Validity
 
 spec :: Spec
 spec = do
+  testDataDir <- resolveContractTestDataDir
+
   genValidSpec @AnnContract
-  contractSpec @AnnContract
+  contractSpec @AnnContract testDataDir "annuity"

@@ -17,9 +17,9 @@ newtype ContractIdentifier = ContractIdentifier {unContractIdentifier :: Text}
 
 instance Validity ContractIdentifier
 
-instance HasCodec ContractIdentifier where
-  codec = bimapCodec fromTerm toTerm codec
-
 instance IsTerm ContractIdentifier where
   toTerm = toTerm . unContractIdentifier
   fromTerm = fmap ContractIdentifier . fromTerm
+
+instance HasCodec ContractIdentifier where
+  codec = bimapCodec fromTerm toTerm codec
