@@ -67,39 +67,52 @@ positiveParseSpec ::
   Spec
 positiveParseSpec testDataDir name =
   describe "positive" $ do
-    examples <- liftIO $ do
-      f <- resolveFile testDataDir $ name ++ ".json"
-      readTestData f
-    forM_ examples $ \TestExample {..} ->
-      describe testExampleExplanation $ do
-        it "can parse this \"MUST parse\" example" $
-          case parseEither parseJSON testExampleValue of
-            Left err ->
-              expectationFailure $
-                unlines
-                  [ "Failed to parse this example with explanation:",
-                    testExampleExplanation,
-                    "with error",
-                    err
-                  ]
-            Right a -> shouldBeValid (a :: a)
+    file <- liftIO $ resolveFile testDataDir $ name ++ ".json"
+    positiveParseFileSpec @a file
 
-        it "can roundtrip this example" $
-          case parseEither parseJSON testExampleValue of
-            Left err ->
-              expectationFailure $
-                unlines
-                  [ "Failed to parse this example with explanation:",
-                    testExampleExplanation,
-                    "with error",
-                    err
-                  ]
-            Right a -> do
-              let rendered = JSON.encode (a :: a)
-              context (show rendered) $
-                case JSON.eitherDecode rendered of
-                  Left err -> expectationFailure err
-                  Right a' -> a' `shouldBe` a
+positiveParseFileSpec ::
+  forall a.
+  ( Validity a,
+    Show a,
+    Eq a,
+    FromJSON a,
+    ToJSON a
+  ) =>
+  Path Abs File ->
+  Spec
+positiveParseFileSpec file = do
+  examples <- liftIO $ readTestData file
+
+  forM_ examples $ \TestExample {..} ->
+    describe testExampleExplanation $ do
+      it "can parse this \"MUST parse\" example" $
+        case parseEither parseJSON testExampleValue of
+          Left err ->
+            expectationFailure $
+              unlines
+                [ "Failed to parse this example with explanation:",
+                  testExampleExplanation,
+                  "with error",
+                  err
+                ]
+          Right a -> shouldBeValid (a :: a)
+
+      it "can roundtrip this example" $
+        case parseEither parseJSON testExampleValue of
+          Left err ->
+            expectationFailure $
+              unlines
+                [ "Failed to parse this example with explanation:",
+                  testExampleExplanation,
+                  "with error",
+                  err
+                ]
+          Right a -> do
+            let rendered = JSON.encode (a :: a)
+            context (show rendered) $
+              case JSON.eitherDecode rendered of
+                Left err -> expectationFailure err
+                Right a' -> a' `shouldBe` a
 
 negativeParseSpec ::
   forall a.

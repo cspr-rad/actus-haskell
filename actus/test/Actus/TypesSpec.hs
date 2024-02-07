@@ -8,9 +8,12 @@ module Actus.TypesSpec (spec) where
 import Actus.Gen ()
 import Actus.TestUtils
 import qualified Actus.Types as Actus
+import Control.Monad
 import Data.Aeson as JSON
+import Data.List (isSuffixOf)
 import Data.Typeable
 import Path
+import Path.IO
 import Test.Syd
 import Test.Syd.Validity
 import Test.Syd.Validity.Aeson
@@ -42,6 +45,17 @@ spec = do
   actusTypeSpec @Actus.Account testDataDir "account"
   actusTypeSpec @Actus.AmountWithCurrency testDataDir "amount-with-currency"
   actusTypeSpec @Actus.AccountWithCurrency testDataDir "account-with-currency"
+
+  describe "terms" $
+    scenarioDir (fromAbsDir testDataDir ++ "terms") $ \termFile ->
+      when (not ("-invalid.json" `isSuffixOf` termFile)) $ do
+        file <- liftIO $ resolveFile' termFile
+        positiveParseFileSpec @Actus.Term file
+  describe "contracts" $
+    scenarioDir (fromAbsDir testDataDir ++ "contracts") $ \termFile ->
+      when (not ("-invalid.json" `isSuffixOf` termFile)) $ do
+        file <- liftIO $ resolveFile' termFile
+        positiveParseFileSpec @Actus.Contract file
 
   actusTypeSpec @Actus.Contract testDataDir "contract"
   actusTypeSpec @Actus.Contracts testDataDir "contracts"
