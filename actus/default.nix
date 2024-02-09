@@ -1,5 +1,5 @@
-{ mkDerivation, aeson, autodocodec, base, containers, genvalidity
-, genvalidity-containers, genvalidity-scientific
+{ mkDerivation, aeson, autodocodec, base, bytestring, containers
+, genvalidity, genvalidity-containers, genvalidity-scientific
 , genvalidity-sydtest, genvalidity-sydtest-aeson, genvalidity-text
 , genvalidity-time, lib, path, path-io, pretty-show, QuickCheck
 , really-safe-money, really-safe-money-autodocodec
@@ -14,9 +14,10 @@ mkDerivation {
   isLibrary = true;
   isExecutable = true;
   libraryHaskellDepends = [
-    aeson autodocodec base containers pretty-show really-safe-money
-    really-safe-money-autodocodec scientific text time validity
-    validity-containers validity-scientific validity-text validity-time
+    aeson autodocodec base bytestring containers pretty-show
+    really-safe-money really-safe-money-autodocodec scientific text
+    time validity validity-containers validity-scientific validity-text
+    validity-time
   ];
   executableHaskellDepends = [ base ];
   testHaskellDepends = [
@@ -28,5 +29,5 @@ mkDerivation {
   ];
   testToolDepends = [ sydtest-discover ];
   license = "unknown";
-  mainProgram = "actus";
+  mainProgram = "actus-test-harness";
 }

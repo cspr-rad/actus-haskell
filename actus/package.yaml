@@ -18,6 +18,7 @@ library:
   dependencies:
     - aeson
     - autodocodec
+    - bytestring
     - containers
     - pretty-show
     - really-safe-money
@@ -32,12 +33,13 @@ library:
     - validity-time
 
 executables:
-  actus:
+  actus-test-harness:
     main: Main.hs
     source-dirs: app
     ghc-options:
+    ghc-options:            
     - -threaded
-    - -rtsopts
+    - -rtsopts     
     - -with-rtsopts=-N
     dependencies:
     - actus
