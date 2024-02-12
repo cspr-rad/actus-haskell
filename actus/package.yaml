@@ -16,16 +16,26 @@ ghc-options:
 library:
   source-dirs: src
   dependencies:
+    - QuickCheck
     - aeson
+    - aeson-pretty
     - autodocodec
     - bytestring
+    - conduit
     - containers
+    - genvalidity
+    - genvalidity-containers
+    - genvalidity-scientific
+    - genvalidity-text
+    - genvalidity-time
     - pretty-show
     - really-safe-money
     - really-safe-money-autodocodec
+    - really-safe-money-gen
     - scientific
     - text
     - time
+    - typed-process
     - validity
     - validity-containers
     - validity-scientific

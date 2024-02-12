@@ -12,6 +12,7 @@ library
   exposed-modules:
       Actus.Contract.Ann
       Actus.Contract.Class
+      Actus.Gen
       Actus.Term.Class
       Actus.Term.ContractIdentifier
       Actus.Tester
@@ -24,17 +25,27 @@ library
       src
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
-      aeson
+      QuickCheck
+    , aeson
+    , aeson-pretty
     , autodocodec
     , base >=4.7 && <5
     , bytestring
+    , conduit
     , containers
+    , genvalidity
+    , genvalidity-containers
+    , genvalidity-scientific
+    , genvalidity-text
+    , genvalidity-time
     , pretty-show
     , really-safe-money
     , really-safe-money-autodocodec
+    , really-safe-money-gen
     , scientific
     , text
     , time
+    , typed-process
     , validity
     , validity-containers
     , validity-scientific
@@ -73,7 +84,6 @@ test-suite actus-test
       Actus.Contract.Ann.Gen
       Actus.Contract.AnnSpec
       Actus.Contract.TestUtils
-      Actus.Gen
       Actus.Term.ContractIdentifier.Gen
       Actus.Term.ContractIdentifierSpec
       Actus.Term.TestUtils

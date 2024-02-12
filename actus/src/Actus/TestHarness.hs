@@ -5,26 +5,41 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Actus.TestHarness (actusTestHarness) where
+module Actus.TestHarness
+  ( actusTestHarness,
+    runTypedTest,
+  )
+where
 
 import Actus.TestHarness.Types
 import qualified Actus.Types as Actus
+import Conduit
 import Data.Aeson (FromJSON, ToJSON)
 import qualified Data.Aeson as JSON
 import qualified Data.Aeson.Types as JSON
+import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as LB
-import qualified Data.ByteString.Lazy.Char8 as LB8
+import qualified Data.Conduit.Combinators as C
+import System.Exit
+import System.IO
 
 actusTestHarness :: IO ()
-actusTestHarness = LB.interact runTests
+actusTestHarness = runActusTestHarness stdin stdout
 
-runTests :: LB.ByteString -> LB.ByteString
-runTests = LB8.unlines . map runTest . LB8.lines
+runActusTestHarness :: Handle -> Handle -> IO ()
+runActusTestHarness inH outH = do
+  runConduit $
+    sourceHandle inH
+      .| C.linesUnboundedAscii
+      .| C.mapM runTest
+      .| C.unlinesAscii
+      .| sinkHandle outH
+  hClose outH
 
-runTest :: LB.ByteString -> LB.ByteString
-runTest lb = case JSON.eitherDecode lb of
-  Left err -> JSON.encode err
-  Right t -> JSON.encode $ runTypedTest t
+runTest :: ByteString -> IO ByteString
+runTest sb = case JSON.eitherDecode (LB.fromStrict sb) of
+  Left err -> die $ unlines ["Failed to parse test", show sb, err]
+  Right t -> pure $ LB.toStrict $ JSON.encode $ runTypedTest t
 
 runTypedTest :: Test -> TestResult
 runTypedTest t =
