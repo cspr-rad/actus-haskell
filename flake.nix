@@ -62,6 +62,9 @@
       packages.${system}.default = haskellPackages.actus;
       checks.${system} = {
         release = haskellPackages.actusRelease;
+        selftest = pkgs.runCommand "actus-haskell-selftest" { } ''
+          ${haskellPackages.actusRelease}/bin/actus-test-harness ${haskellPackages.actusRelease}/bin/actus-test-harness > $out
+        '';
         pre-commit = pre-commit-hooks.lib.${system}.run {
           src = ./.;
           hooks = {

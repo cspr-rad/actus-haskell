@@ -29,5 +29,4 @@ mkDerivation {
   ];
   testToolDepends = [ sydtest-discover ];
   license = "unknown";
-  mainProgram = "actus-test-harness";
 }

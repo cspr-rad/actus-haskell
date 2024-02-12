@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Actus
+import Actus.TestHarness
 
 main :: IO ()
 main = actusTestHarness

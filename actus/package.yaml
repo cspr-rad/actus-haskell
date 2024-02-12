@@ -35,8 +35,17 @@ library:
 executables:
   actus-test-harness:
     main: Main.hs
-    source-dirs: app
-    ghc-options:
+    source-dirs: harness
+    ghc-options:            
+    - -threaded
+    - -rtsopts     
+    - -with-rtsopts=-N
+    dependencies:
+    - actus
+
+  actus-tester:
+    main: Main.hs
+    source-dirs: tester
     ghc-options:            
     - -threaded
     - -rtsopts     
