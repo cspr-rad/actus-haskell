@@ -15,6 +15,8 @@ library
       Actus.Contract.Class
       Actus.Term.Class
       Actus.Term.ContractIdentifier
+      Actus.TestHarness
+      Actus.TestHarness.Types
       Actus.Types
   other-modules:
       Paths_actus
