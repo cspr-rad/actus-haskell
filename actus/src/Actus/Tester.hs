@@ -10,7 +10,6 @@ import Actus.TestHarness (runTypedTest)
 import Actus.TestHarness.Types
 import Actus.Types as Actus
 import Conduit
-import Control.Monad
 import Data.Aeson as JSON (Value, eitherDecode, encode, toJSON)
 import Data.Aeson.Encode.Pretty as JSON
 import qualified Data.Aeson.KeyMap as KeyMap
@@ -19,15 +18,14 @@ import qualified Data.ByteString.Lazy as LB
 import qualified Data.Conduit.Combinators as C
 import Data.GenValidity
 import qualified Data.Map as M
-import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import System.Environment
 import System.Exit
-import System.IO
 import System.Process.Typed
 import Test.QuickCheck
 import Text.Show.Pretty
+import UnliftIO
 
 actusTester :: IO ()
 actusTester = do
@@ -65,87 +63,127 @@ runActusTester inH outH = do
           ("amount-with-currency", toJSON <$> genValid @Actus.AmountWithCurrency),
           ("account-with-currency", toJSON <$> genValid @Actus.AccountWithCurrency)
         ]
-  tests <- generate $
-    fmap concat $
-      forM types $ \(typeName, valueGen) ->
-        forM [0 .. 10] $ \ix -> do
-          let testIdentifier =
+
+  testsInFlightVar <- newTVarIO M.empty
+
+  let numTestsPerType = 10
+  runConduit $
+    yieldMany types
+      -- Generate tests
+      .| C.concatMap (\t -> (,) t <$> [1 .. numTestsPerType])
+      .| C.mapM
+        ( \((typeName, valueGen), ix) -> do
+            let testIdentifier =
+                  T.pack $
+                    concat
+                      [ "parse-",
+                        typeName,
+                        "-",
+                        show (ix :: Word)
+                      ]
+            let testType = "parse"
+            let testArguments = KeyMap.singleton "type" (toJSON typeName)
+            testValue <- liftIO $ generate valueGen
+            pure Test {..}
+        )
+      .| C.mapM
+        ( \test -> do
+            let tid = testIdentifier test
+            SB.hPutStr stderr $
+              TE.encodeUtf8 $
                 T.pack $
-                  concat
-                    [ "parse-",
-                      typeName,
-                      "-",
-                      show (ix :: Word)
-                    ]
-          let testType = "parse"
-          let testArguments = KeyMap.singleton "type" (toJSON typeName)
-          testValue <- valueGen
-          let !test = Test {..}
-          let !testResult = runTypedTest test
-          pure (test, testResult)
+                  unwords
+                    ["Precomputing test result for:", show tid]
+            SB.hPutStr stderr "\n"
+            pure test
+        )
+      .| C.map
+        ( \test ->
+            let !testResult = runTypedTest test
+             in (test, testResult)
+        )
+      -- Record that we expect a test
+      .| C.mapM
+        ( \(test, testResult) -> do
+            let tid = testIdentifier test
+            atomically $ modifyTVar' testsInFlightVar $ M.insert tid (test, testResult)
+            pure test
+        )
+      -- Log that we send them to the harness
+      .| C.mapM
+        ( \test -> do
+            let tid = testIdentifier test
+            SB.hPutStr stderr $ TE.encodeUtf8 $ T.pack $ unwords ["Sending test:", show tid]
+            SB.hPutStr stderr "\n"
+            SB.hPutStr stderr $ LB.toStrict $ JSON.encodePretty test
+            SB.hPutStr stderr "\n"
+            hFlush stderr
+            pure test
+        )
+      -- Send them to the harness
+      .| C.map JSON.encode
+      .| C.map LB.toStrict
+      .| C.unlinesAscii
+      .| sinkHandle inH
 
-  let testsMap = M.fromList $ map (\(t, tr) -> (testIdentifier t, (t, tr))) tests
-
-  forM_ (M.toList testsMap) $ \(tid, (test, _)) -> do
-    SB.hPutStr stderr $ TE.encodeUtf8 $ T.pack $ unwords ["Sending test:", show tid]
-    SB.hPutStr stderr "\n"
-    SB.hPutStr stderr $ LB.toStrict $ JSON.encodePretty test
-    SB.hPutStr stderr "\n"
-    hFlush stderr
-    SB.hPut inH $ LB.toStrict $ JSON.encode test
-    SB.hPut inH "\n"
-    hFlush inH
+  -- Make sure the harness stops, otherwise it will continue to expect input.
   hClose inH
 
-  executedTestIdentifiers <-
-    fmap S.fromList $
-      runConduit $
-        sourceHandle outH
-          .| C.linesUnboundedAscii
-          .| C.mapM
-            ( \sb -> case JSON.eitherDecode (LB.fromStrict sb) of
-                Left err ->
-                  die $
-                    unlines
-                      [ "Failed to parse test result:",
-                        show sb,
-                        show err
-                      ] -- TODO collect multiple failures?
-                Right tr -> do
-                  SB.hPutStr stderr $
-                    TE.encodeUtf8 $
-                      T.pack $
-                        unwords
-                          [ "Received test result:",
-                            show (testResultIdentifier tr)
-                          ]
-                  SB.hPutStr stderr "\n"
-                  SB.hPutStr stderr sb
-                  SB.hPutStr stderr "\n"
-                  hFlush stderr
-                  case M.lookup (testResultIdentifier tr) testsMap of
-                    Nothing -> die "Unknown test result"
-                    Just (test, tr') -> do
-                      pure (test, tr, tr')
-            )
-          .| C.mapM
-            ( \(test, tr, tr') -> do
-                if tr == tr'
-                  then pure (testResultIdentifier tr)
-                  else
-                    die $
-                      unlines
-                        [ "Test failure for test:",
-                          ppShow test,
-                          "Actual:",
-                          ppShow tr,
-                          "Expected:",
-                          ppShow tr'
-                        ]
-            )
-          .| sinkList
-  let testIdentifiers = M.keysSet testsMap
-  let diff = testIdentifiers `S.difference` executedTestIdentifiers
-  if S.null diff
+  runConduit $
+    sourceHandle outH
+      .| C.linesUnboundedAscii
+      .| C.mapM
+        ( \sb -> case JSON.eitherDecode (LB.fromStrict sb) of
+            Left err ->
+              die $
+                unlines
+                  [ "Failed to parse test result:",
+                    show sb,
+                    show err
+                  ] -- TODO collect multiple failures?
+            Right tr -> do
+              SB.hPutStr stderr $
+                TE.encodeUtf8 $
+                  T.pack $
+                    unwords
+                      [ "Received test result:",
+                        show (testResultIdentifier tr)
+                      ]
+              SB.hPutStr stderr "\n"
+              SB.hPutStr stderr sb
+              SB.hPutStr stderr "\n"
+              hFlush stderr
+              pure tr
+        )
+      .| C.mapM
+        ( \actual -> do
+            mExpectedResult <- atomically $ stateTVar testsInFlightVar $ \m ->
+              let tid = testResultIdentifier actual
+                  mExpected = M.lookup tid m
+                  mNew = M.delete tid m
+               in (mExpected, mNew)
+            case mExpectedResult of
+              Nothing -> die "Unknown test result"
+              Just (test, expected) -> do
+                pure (test, actual, expected)
+        )
+      .| C.mapM_
+        ( \(test, tr, tr') -> do
+            if tr == tr'
+              then pure ()
+              else
+                die $
+                  unlines
+                    [ "Test failure for test:",
+                      ppShow test,
+                      "Actual:",
+                      ppShow tr,
+                      "Expected:",
+                      ppShow tr'
+                    ]
+        )
+
+  diff <- readTVarIO testsInFlightVar
+  if M.null diff
     then pure ()
-    else die $ "Some test results were missing: " <> show (S.toList diff)
+    else die $ unlines $ "Some test results were missing: " : map ppShow (M.toList diff)

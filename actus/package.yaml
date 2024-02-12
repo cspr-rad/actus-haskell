@@ -36,6 +36,7 @@ library:
     - text
     - time
     - typed-process
+    - unliftio
     - validity
     - validity-containers
     - validity-scientific
