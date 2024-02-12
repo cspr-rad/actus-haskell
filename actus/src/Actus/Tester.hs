@@ -17,7 +17,9 @@ import qualified Data.ByteString as SB
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.Conduit.Combinators as C
 import Data.GenValidity
+import Data.Map (Map)
 import qualified Data.Map as M
+import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import System.Environment
@@ -45,28 +47,40 @@ actusTester = do
 
 runActusTester :: Handle -> Handle -> IO ()
 runActusTester inH outH = do
-  let types :: [(String, Gen JSON.Value)]
-      types =
-        [ ("natural", toJSON <$> genValid @Actus.Natural),
-          ("integer", toJSON <$> genValid @Actus.Integer),
-          ("rational", toJSON <$> genValid @Actus.Rational),
-          ("positive-rational", toJSON <$> genValid @Actus.PositiveRational),
-          ("day", toJSON <$> genValid @Actus.Day),
-          ("second-of-day", toJSON <$> genValid @Actus.SecondOfDay),
-          ("local-second", toJSON <$> genValid @Actus.LocalSecond),
-          ("time-zone-offset", toJSON <$> genValid @Actus.TimeZoneOffset),
-          ("quantisation-factor", toJSON <$> genValid @Actus.QuantisationFactor),
-          ("currency", toJSON <$> genValid @Actus.Currency),
-          ("currencies", toJSON <$> genValid @Actus.Currencies),
-          ("amount", toJSON <$> genValid @Actus.Amount),
-          ("account", toJSON <$> genValid @Actus.Account),
-          ("amount-with-currency", toJSON <$> genValid @Actus.AmountWithCurrency),
-          ("account-with-currency", toJSON <$> genValid @Actus.AccountWithCurrency)
-        ]
-
   testsInFlightVar <- newTVarIO M.empty
 
   let numTestsPerType = 10
+
+  concurrently_
+    (testInputer numTestsPerType inH testsInFlightVar)
+    (testResultReceiver outH testsInFlightVar)
+
+  diff <- readTVarIO testsInFlightVar
+  if M.null diff
+    then pure ()
+    else die $ unlines $ "Some test results were missing: " : map ppShow (M.toList diff)
+
+types :: [(String, Gen JSON.Value)]
+types =
+  [ ("natural", toJSON <$> genValid @Actus.Natural),
+    ("integer", toJSON <$> genValid @Actus.Integer),
+    ("rational", toJSON <$> genValid @Actus.Rational),
+    ("positive-rational", toJSON <$> genValid @Actus.PositiveRational),
+    ("day", toJSON <$> genValid @Actus.Day),
+    ("second-of-day", toJSON <$> genValid @Actus.SecondOfDay),
+    ("local-second", toJSON <$> genValid @Actus.LocalSecond),
+    ("time-zone-offset", toJSON <$> genValid @Actus.TimeZoneOffset),
+    ("quantisation-factor", toJSON <$> genValid @Actus.QuantisationFactor),
+    ("currency", toJSON <$> genValid @Actus.Currency),
+    ("currencies", toJSON <$> genValid @Actus.Currencies),
+    ("amount", toJSON <$> genValid @Actus.Amount),
+    ("account", toJSON <$> genValid @Actus.Account),
+    ("amount-with-currency", toJSON <$> genValid @Actus.AmountWithCurrency),
+    ("account-with-currency", toJSON <$> genValid @Actus.AccountWithCurrency)
+  ]
+
+testInputer :: Word -> Handle -> TVar (Map Text (Test, TestResult)) -> IO ()
+testInputer numTestsPerType inH testsInFlightVar = do
   runConduit $
     yieldMany types
       -- Generate tests
@@ -79,7 +93,7 @@ runActusTester inH outH = do
                       [ "parse-",
                         typeName,
                         "-",
-                        show (ix :: Word)
+                        show ix
                       ]
             let testType = "parse"
             let testArguments = KeyMap.singleton "type" (toJSON typeName)
@@ -129,6 +143,8 @@ runActusTester inH outH = do
   -- Make sure the harness stops, otherwise it will continue to expect input.
   hClose inH
 
+testResultReceiver :: Handle -> TVar (Map Text (Test, TestResult)) -> IO ()
+testResultReceiver outH testsInFlightVar =
   runConduit $
     sourceHandle outH
       .| C.linesUnboundedAscii
@@ -182,8 +198,3 @@ runActusTester inH outH = do
                       ppShow tr'
                     ]
         )
-
-  diff <- readTVarIO testsInFlightVar
-  if M.null diff
-    then pure ()
-    else die $ unlines $ "Some test results were missing: " : map ppShow (M.toList diff)
