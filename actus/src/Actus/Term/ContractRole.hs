@@ -9,9 +9,9 @@ import Actus.Term.Class
 import Autodocodec
 import Control.Monad
 import Data.Aeson (FromJSON, ToJSON)
+import Data.GenValidity
+import Data.GenValidity.Text ()
 import Data.Text (Text)
-import Data.Validity
-import Data.Validity.Text ()
 import GHC.Generics (Generic)
 
 data ContractRole
@@ -65,6 +65,10 @@ instance IsTerm ContractRole where
 
 instance HasCodec ContractRole where
   codec = bimapCodec fromTerm toTerm codec
+
+instance GenValid ContractRole where
+  genValid = genValidStructurallyWithoutExtraChecking
+  shrinkValid = shrinkValidStructurallyWithoutExtraFiltering
 
 parseContractRole :: Text -> Either String ContractRole
 parseContractRole = \case

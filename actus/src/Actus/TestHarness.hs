@@ -11,6 +11,8 @@ module Actus.TestHarness
   )
 where
 
+import Actus.Term.ContractIdentifier
+import Actus.Term.ContractRole
 import Actus.TestHarness.Types
 import qualified Actus.Types as Actus
 import Conduit
@@ -87,6 +89,8 @@ runParseTest ParseTest {..} =
         "account" -> parseTestFor @Actus.Account
         "amount-with-currency" -> parseTestFor @Actus.AmountWithCurrency
         "account-with-currency" -> parseTestFor @Actus.AccountWithCurrency
+        "contractID" -> parseTestFor @ContractIdentifier
+        "contractRole" -> parseTestFor @ContractRole
         _ ->
           ParseTestResult
             { parseTestResultParses = False,

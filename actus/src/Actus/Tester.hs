@@ -6,6 +6,8 @@
 module Actus.Tester (actusTester) where
 
 import Actus.Gen ()
+import Actus.Term.ContractIdentifier
+import Actus.Term.ContractRole
 import Actus.TestHarness (runTypedTest)
 import Actus.TestHarness.Types
 import Actus.Types as Actus
@@ -62,7 +64,8 @@ runActusTester inH outH = do
 
 types :: [(String, Gen JSON.Value)]
 types =
-  [ ("natural", toJSON <$> genValid @Actus.Natural),
+  [ -- Base types
+    ("natural", toJSON <$> genValid @Actus.Natural),
     ("integer", toJSON <$> genValid @Actus.Integer),
     ("rational", toJSON <$> genValid @Actus.Rational),
     ("positive-rational", toJSON <$> genValid @Actus.PositiveRational),
@@ -76,7 +79,10 @@ types =
     ("amount", toJSON <$> genValid @Actus.Amount),
     ("account", toJSON <$> genValid @Actus.Account),
     ("amount-with-currency", toJSON <$> genValid @Actus.AmountWithCurrency),
-    ("account-with-currency", toJSON <$> genValid @Actus.AccountWithCurrency)
+    ("account-with-currency", toJSON <$> genValid @Actus.AccountWithCurrency),
+    -- Terms
+    ("contractID", toJSON <$> genValid @ContractIdentifier),
+    ("contractRole", toJSON <$> genValid @ContractRole)
   ]
 
 testInputer :: Word -> Handle -> TVar (Map Text (Test, TestResult)) -> IO ()

@@ -6,9 +6,9 @@ module Actus.Term.ContractIdentifier where
 import Actus.Term.Class
 import Autodocodec
 import Data.Aeson (FromJSON, ToJSON)
+import Data.GenValidity
+import Data.GenValidity.Text ()
 import Data.Text (Text)
-import Data.Validity
-import Data.Validity.Text ()
 import GHC.Generics (Generic)
 
 newtype ContractIdentifier = ContractIdentifier {unContractIdentifier :: Text}
@@ -23,3 +23,7 @@ instance IsTerm ContractIdentifier where
 
 instance HasCodec ContractIdentifier where
   codec = bimapCodec fromTerm toTerm codec
+
+instance GenValid ContractIdentifier where
+  genValid = genValidStructurallyWithoutExtraChecking
+  shrinkValid = shrinkValidStructurallyWithoutExtraFiltering

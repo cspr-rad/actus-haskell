@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.36.0.
+-- This file has been generated from package.yaml by hpack version 0.35.2.
 --
 -- see: https://github.com/sol/hpack
 
@@ -86,9 +86,7 @@ test-suite actus-test
       Actus.Contract.Ann.Gen
       Actus.Contract.AnnSpec
       Actus.Contract.TestUtils
-      Actus.Term.ContractIdentifier.Gen
       Actus.Term.ContractIdentifierSpec
-      Actus.Term.ContractRole.Gen
       Actus.Term.ContractRoleSpec
       Actus.Term.TestUtils
       Actus.TestUtils

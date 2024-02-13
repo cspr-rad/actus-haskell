@@ -8,11 +8,11 @@
         "typstnix": "typstnix"
       },
       "locked": {
-        "lastModified": 1707307180,
-        "narHash": "sha256-vh1MwK23vpglbF3DQB3wNyRspns3rAUKQpupkqZe28o=",
+        "lastModified": 1707834269,
+        "narHash": "sha256-quU/1a1sGfnKhI++hwP4gtCnQPvzRrh8fY5Xi67uEik=",
         "owner": "cspr-rad",
         "repo": "actus-spec",
-        "rev": "999f94263d44d5d07f7450f554f5b3ed40c9a3d9",
+        "rev": "bb2fae486e44dd97d1ffbffce4b345e33a085485",
         "type": "github"
       },
       "original": {
